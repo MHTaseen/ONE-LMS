@@ -207,7 +207,7 @@ if ($role === 'student' || $role === 'guest') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>BRAC University Hub – Thesis Prototype</title>
+    <title>ONE LMS – Thesis Prototype</title>
     <link rel="stylesheet" href="style.css">
     <script src="theme.js"></script>
     <style>
@@ -1480,7 +1480,7 @@ if ($role === 'student' || $role === 'guest') {
         <!-- Left: initials avatar + brand -->
         <div class="navbar-left">
             <div class="nav-avatar" title="<?= htmlspecialchars($fullName) ?>"><?= $initials ?></div>
-            <span class="navbar-brand">BRAC University Hub</span>
+            <span class="navbar-brand">ONE LMS</span>
         </div>
 
         <!-- Universal Search Bar -->
