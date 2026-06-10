@@ -277,8 +277,96 @@ function formatBytes($size, $precision = 2) {
         .mat-search-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
         .mat-search-inner { position: relative; flex: 1; max-width: 420px; }
         .mat-search-inner svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--text-secondary); pointer-events: none; }
-        .mat-search-input { width: 100%; padding: 10px 14px 10px 40px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 12px; color: var(--text-primary); font-size: 0.95rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+        .mat-search-input { width: 100%; padding: 10px 132px 10px 40px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 12px; color: var(--text-primary); font-size: 0.95rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
         .mat-search-input:focus { border-color: var(--accent-primary); box-shadow: var(--glow-shadow); }
+        .mat-search-filter-toggle {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            min-width: 104px;
+            height: 34px;
+            padding: 0 10px 0 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            background: var(--input-bg);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.2s;
+        }
+        .mat-search-filter-toggle span {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+        }
+        .mat-search-filter-toggle:hover,
+        .mat-search-filter-toggle.active {
+            background: rgba(168,85,247,0.08);
+            color: var(--accent-primary);
+            border-color: rgba(168,85,247,0.2);
+        }
+        .mat-search-filter-toggle.active {
+            transform: translateY(-50%);
+        }
+        .mat-search-filter-toggle svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            transition: transform 0.2s ease;
+        }
+        .mat-search-filter-toggle.active svg {
+            transform: rotate(180deg);
+        }
+        .mat-search-filter-panel {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            display: none;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.22);
+            z-index: 140;
+        }
+        .mat-search-filter-panel.active { display: block; }
+        .mat-search-filter-title {
+            color: var(--text-secondary);
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 10px;
+        }
+        .mat-search-filter-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .mat-search-chip {
+            border: 1px solid var(--border-color);
+            background: var(--input-bg);
+            color: var(--text-secondary);
+            border-radius: 999px;
+            padding: 7px 12px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+        }
+        .mat-search-chip:hover,
+        .mat-search-chip.active {
+            background: rgba(168,85,247,0.12);
+            color: var(--accent-primary);
+            border-color: rgba(168,85,247,0.24);
+            box-shadow: 0 0 0 2px rgba(168,85,247,0.08);
+        }
         .mat-search-count { font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap; }
         .no-mat-result { display: none; padding: 40px; text-align: center; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; color: var(--text-secondary); }
             .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; }
@@ -297,6 +385,9 @@ function formatBytes($size, $precision = 2) {
             .modal-content, .popup-card { width: calc(100% - 24px); margin: 12px; max-height: 90vh; overflow-y: auto; }
             h1, .page-title { font-size: 1.5rem; }
             h2, .section-title { font-size: 1.2rem; }
+            .mat-search-wrap { flex-direction: column; align-items: stretch; }
+            .mat-search-inner { max-width: none; }
+            .mat-search-count { white-space: normal; }
         }
         @media (max-width: 600px) {
             .top-navbar { padding: 0 10px; }
@@ -308,6 +399,8 @@ function formatBytes($size, $precision = 2) {
             .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
             table { min-width: 550px; font-size: 0.85rem; }
             th, td { padding: 8px 10px; }
+            .mat-search-input { padding-right: 118px; }
+            .mat-search-filter-toggle { min-width: 92px; }
         }</style>
     <link rel="stylesheet" href="responsive.css">
 </head>
@@ -357,6 +450,23 @@ function formatBytes($size, $precision = 2) {
                 <div class="mat-search-inner">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <input type="text" id="matSearchInput" class="mat-search-input" placeholder="<?= ($role === 'guest' && $view_mode === 'all') ? 'Search public materials globally...' : 'Search courses or specific materials globally...' ?>" autocomplete="off">
+                    <button type="button" id="matSearchFilterToggle" class="mat-search-filter-toggle" aria-label="Open material filters" aria-expanded="false">
+                        <span id="matSearchFilterLabel">All Types</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div id="matSearchFilterPanel" class="mat-search-filter-panel">
+                        <div class="mat-search-filter-title">Content Type</div>
+                        <div class="mat-search-filter-list">
+                            <button type="button" class="mat-search-chip active" data-filter="all">All Types</button>
+                            <button type="button" class="mat-search-chip" data-filter="audio">Audio</button>
+                            <button type="button" class="mat-search-chip" data-filter="video">Video</button>
+                            <button type="button" class="mat-search-chip" data-filter="pdf">PDF</button>
+                            <button type="button" class="mat-search-chip" data-filter="book">BOOK</button>
+                            <button type="button" class="mat-search-chip" data-filter="slides">SLIDES</button>
+                        </div>
+                    </div>
                     <div id="matSearchResults" style="display:none; position:absolute; top:100%; left:0; right:0; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:12px; margin-top:8px; z-index:100; box-shadow:var(--glow-shadow); max-height:400px; overflow-y:auto;"></div>
                 </div>
                 <span class="mat-search-count" id="matSearchCount"></span>
@@ -534,19 +644,33 @@ function formatBytes($size, $precision = 2) {
     // Global AJAX Search Logic for Materials and Courses
     const matSearch = document.getElementById('matSearchInput');
     const matResults = document.getElementById('matSearchResults');
+    const matSearchFilterToggle = document.getElementById('matSearchFilterToggle');
+    const matSearchFilterPanel = document.getElementById('matSearchFilterPanel');
+    const matSearchFilterLabel = document.getElementById('matSearchFilterLabel');
+    const matSearchFilterChips = document.querySelectorAll('.mat-search-chip');
     const viewMode = "<?= $view_mode ?>";
     let debounceTimeout;
+    let selectedMaterialFilter = 'all';
 
     if (matSearch) {
-        matSearch.addEventListener('input', function() {
+        const materialFilterLabels = {
+            all: 'All Types',
+            audio: 'Audio',
+            video: 'Video',
+            pdf: 'PDF',
+            book: 'BOOK',
+            slides: 'SLIDES'
+        };
+
+        const runMaterialSearch = () => {
             clearTimeout(debounceTimeout);
-            const q = this.value.trim();
+            const q = matSearch.value.trim();
             if (!q) {
                 matResults.style.display = 'none';
                 return;
             }
             debounceTimeout = setTimeout(() => {
-                fetch(`search_materials.php?q=${encodeURIComponent(q)}&view=${viewMode}`)
+                fetch(`search_materials.php?q=${encodeURIComponent(q)}&view=${viewMode}&filter=${encodeURIComponent(selectedMaterialFilter)}`)
                     .then(res => res.json())
                     .then(data => {
                         matResults.innerHTML = '';
@@ -557,6 +681,10 @@ function formatBytes($size, $precision = 2) {
                                 const isLocked = item.is_locked;
                                 const tag = isLocked ? 'div' : 'a';
                                 const badgeColor = item.type === 'Course' ? 'var(--accent-primary)' : '#10b981';
+                                const materialTypeLabel = item.content_type
+                                    ? (item.content_type === 'other' ? 'Material' : item.content_type.toUpperCase())
+                                    : item.type;
+                                const badgeLabel = isLocked ? 'Locked' : (item.type === 'Course' ? 'Course' : materialTypeLabel);
                                 
                                 matResults.innerHTML += `
                                     <${tag} ${isLocked ? `style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border-color);color:inherit;text-decoration:none;filter:blur(1.5px);opacity:0.7;cursor:not-allowed;"` : `href="${item.url}" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border-color);color:inherit;text-decoration:none;transition:0.2s;" onmouseover="this.style.background='rgba(168,85,247,0.05)'" onmouseout="this.style.background='none'"`}>
@@ -565,7 +693,7 @@ function formatBytes($size, $precision = 2) {
                                             <div style="font-size:0.85rem;color:var(--text-secondary);">${item.meta}</div>
                                         </div>
                                         <div style="font-size:0.75rem;padding:4px 8px;border-radius:12px;background:rgba(${item.type === 'Course' ? '168,85,247' : '16,185,129'},0.1);color:${badgeColor};font-weight:600;">
-                                            ${isLocked ? 'Locked' : item.type}
+                                            ${badgeLabel}
                                         </div>
                                     </${tag}>
                                 `;
@@ -574,11 +702,41 @@ function formatBytes($size, $precision = 2) {
                         matResults.style.display = 'block';
                     });
             }, 300);
+        };
+
+        matSearch.addEventListener('input', runMaterialSearch);
+
+        if (matSearchFilterToggle && matSearchFilterPanel) {
+            matSearchFilterToggle.addEventListener('click', e => {
+                e.stopPropagation();
+                const isOpen = matSearchFilterPanel.classList.toggle('active');
+                matSearchFilterToggle.classList.toggle('active', isOpen);
+                matSearchFilterToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+        }
+
+        matSearchFilterChips.forEach(chip => {
+            chip.addEventListener('click', e => {
+                e.stopPropagation();
+                selectedMaterialFilter = chip.dataset.filter;
+                matSearchFilterLabel.textContent = materialFilterLabels[selectedMaterialFilter] || 'All Types';
+                matSearchFilterChips.forEach(btn => btn.classList.remove('active'));
+                chip.classList.add('active');
+                matSearchFilterPanel?.classList.remove('active');
+                matSearchFilterToggle?.classList.remove('active');
+                matSearchFilterToggle?.setAttribute('aria-expanded', 'false');
+                if (matSearch.value.trim()) {
+                    runMaterialSearch();
+                }
+            });
         });
         
         document.addEventListener('click', e => {
-            if (!matSearch.contains(e.target) && !matResults.contains(e.target)) {
+            if (!matSearch.contains(e.target) && !matResults.contains(e.target) && !matSearchFilterPanel?.contains(e.target) && !matSearchFilterToggle?.contains(e.target)) {
                 matResults.style.display = 'none';
+                matSearchFilterPanel?.classList.remove('active');
+                matSearchFilterToggle?.classList.remove('active');
+                matSearchFilterToggle?.setAttribute('aria-expanded', 'false');
             }
         });
     }

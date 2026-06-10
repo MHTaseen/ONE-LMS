@@ -13,10 +13,10 @@ if (!isset($_SESSION['user_id'])) {
 
 $query = isset($_GET['q']) ? trim($_GET['q']) : '';
 $filter = strtolower(trim($_GET['filter'] ?? 'all'));
-$allowedFilters = ['all', 'course', 'teacher', 'feature', 'notifications', 'quiz', 'assignment', 'grades'];
+$allowedFilters = ['messages', 'materials', 'routine', 'features'];
 
 if (!in_array($filter, $allowedFilters, true)) {
-    $filter = 'all';
+    $filter = 'features';
 }
 
 if (strlen($query) === 0) {
@@ -42,7 +42,21 @@ function addSearchResult(array &$results, string $title, string $type, string $u
 
 function allowsFilter(string $activeFilter, string $target): bool
 {
-    return $activeFilter === 'all' || $activeFilter === $target;
+    return $activeFilter === $target;
+}
+
+function shortenText(?string $text, int $limit = 72): string
+{
+    $text = trim((string) $text);
+    if ($text === '') {
+        return '';
+    }
+
+    if (function_exists('mb_strlen') && function_exists('mb_substr')) {
+        return mb_strlen($text) > $limit ? mb_substr($text, 0, $limit - 3) . '...' : $text;
+    }
+
+    return strlen($text) > $limit ? substr($text, 0, $limit - 3) . '...' : $text;
 }
 
 if (!$studentDbId && in_array($role, ['student', 'guest'], true)) {
@@ -69,9 +83,12 @@ if ($role === 'teacher') {
     $features[] = ['title' => 'Deploy Assignments', 'url' => 'deploy_assignment.php', 'type' => 'Feature', 'meta' => 'Create assignment tasks'];
 }
 
-if (allowsFilter($filter, 'feature')) {
+if (allowsFilter($filter, 'features')) {
     foreach ($features as $feature) {
-        if (strpos(strtolower($feature['title']), $qLower) !== false) {
+        if (
+            strpos(strtolower($feature['title']), $qLower) !== false ||
+            strpos(strtolower($feature['meta']), $qLower) !== false
+        ) {
             addSearchResult($results, $feature['title'], $feature['type'], $feature['url'], $feature['meta']);
         }
     }
@@ -80,161 +97,204 @@ if (allowsFilter($filter, 'feature')) {
 try {
     $searchWildcard = '%' . $query . '%';
 
-    if (allowsFilter($filter, 'teacher')) {
-        $stmt = $pdo->prepare("SELECT full_name, user_id FROM users WHERE role = 'teacher' AND (full_name LIKE ? OR user_id LIKE ?) LIMIT 8");
-        $stmt->execute([$searchWildcard, $searchWildcard]);
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $teacher) {
-            addSearchResult($results, $teacher['full_name'], 'Teacher', 'student_consult.php', $teacher['user_id']);
-        }
-    }
+    if (allowsFilter($filter, 'messages') && $userPk) {
+        $directMessageUrl = $role === 'teacher' ? 'teacher_messages.php' : 'student_consult.php';
 
-    if (allowsFilter($filter, 'course')) {
-        $stmt = $pdo->prepare("SELECT title, code FROM courses WHERE title LIKE ? OR code LIKE ? LIMIT 8");
-        $stmt->execute([$searchWildcard, $searchWildcard]);
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $course) {
-            addSearchResult($results, $course['code'] . ' - ' . $course['title'], 'Course', 'advising.php', 'Course catalog result');
-        }
-    }
-
-    if (allowsFilter($filter, 'notifications') && $userPk) {
         $stmt = $pdo->prepare("
-            SELECT message, link_url, created_at
-            FROM notifications
-            WHERE user_id = ? AND message LIKE ?
-            ORDER BY created_at DESC
-            LIMIT 8
+            SELECT
+                m.message_text,
+                c.code,
+                COALESCE(other_user.full_name, 'Direct Message') AS other_name
+            FROM messages m
+            LEFT JOIN course_sections cs ON m.section_id = cs.id
+            LEFT JOIN courses c ON cs.course_id = c.id
+            LEFT JOIN users other_user ON other_user.id = CASE
+                WHEN m.sender_id = ? THEN m.receiver_id
+                ELSE m.sender_id
+            END
+            WHERE (m.sender_id = ? OR m.receiver_id = ?)
+              AND m.message_text LIKE ?
+            ORDER BY m.created_at DESC
+            LIMIT 5
         ");
-        $stmt->execute([$userPk, $searchWildcard]);
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $notification) {
-            $meta = date('M j, g:i a', strtotime($notification['created_at']));
+        $stmt->execute([$userPk, $userPk, $userPk, $searchWildcard]);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $message) {
+            $title = shortenText($message['message_text']);
+            if ($title === '') {
+                continue;
+            }
+            $metaParts = [];
+            if (!empty($message['code'])) {
+                $metaParts[] = $message['code'];
+            }
+            if (!empty($message['other_name'])) {
+                $metaParts[] = 'Direct message with ' . $message['other_name'];
+            }
+            addSearchResult($results, $title, 'Message', $directMessageUrl, implode(' • ', $metaParts));
+        }
+
+        if ($role === 'teacher') {
+            $stmt = $pdo->prepare("
+                SELECT cc.message, cc.channel, cs.id AS section_id, c.code
+                FROM course_communications cc
+                JOIN course_sections cs ON cc.section_id = cs.id
+                JOIN courses c ON cs.course_id = c.id
+                WHERE c.teacher_id = ?
+                  AND cc.message LIKE ?
+                ORDER BY cc.created_at DESC
+                LIMIT 6
+            ");
+            $stmt->execute([$userPk, $searchWildcard]);
+        } elseif ($role === 'student' && $studentDbId) {
+            $stmt = $pdo->prepare("
+                SELECT DISTINCT cc.message, cc.channel, cs.id AS section_id, c.code
+                FROM course_communications cc
+                JOIN course_sections cs ON cc.section_id = cs.id
+                JOIN courses c ON cs.course_id = c.id
+                JOIN enrollments e ON e.section_id = cs.id
+                WHERE e.student_id = ?
+                  AND cc.message LIKE ?
+                ORDER BY cc.created_at DESC
+                LIMIT 6
+            ");
+            $stmt->execute([$studentDbId, $searchWildcard]);
+        } else {
+            $stmt = null;
+        }
+
+        if ($stmt) {
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $message) {
+                $title = shortenText($message['message']);
+                if ($title === '') {
+                    continue;
+                }
+                addSearchResult(
+                    $results,
+                    $title,
+                    'Message',
+                    'communication_media.php?section_id=' . intval($message['section_id']) . '&channel=' . urlencode($message['channel']),
+                    implode(' • ', array_filter([$message['code'] ?? '', ucfirst($message['channel'])]))
+                );
+            }
+        }
+    }
+
+    if (allowsFilter($filter, 'materials')) {
+        if ($role === 'student' && $studentDbId) {
+            $stmt = $pdo->prepare("
+                SELECT DISTINCT cm.id, cm.title, cm.original_filename, cm.category, cm.is_private, c.code, c.title AS course_title
+                FROM course_materials cm
+                JOIN courses c ON cm.course_id = c.id
+                JOIN course_sections cs ON cs.course_id = c.id
+                JOIN enrollments e ON e.section_id = cs.id
+                WHERE e.student_id = ?
+                  AND (
+                    cm.title LIKE ?
+                    OR cm.original_filename LIKE ?
+                    OR cm.category LIKE ?
+                    OR c.code LIKE ?
+                    OR c.title LIKE ?
+                  )
+                ORDER BY cm.uploaded_at DESC
+                LIMIT 8
+            ");
+            $stmt->execute([$studentDbId, $searchWildcard, $searchWildcard, $searchWildcard, $searchWildcard, $searchWildcard]);
+        } else {
+            $stmt = $pdo->prepare("
+                SELECT cm.id, cm.title, cm.original_filename, cm.category, cm.is_private, c.code, c.title AS course_title
+                FROM course_materials cm
+                JOIN courses c ON cm.course_id = c.id
+                WHERE
+                    cm.title LIKE ?
+                    OR cm.original_filename LIKE ?
+                    OR cm.category LIKE ?
+                    OR c.code LIKE ?
+                    OR c.title LIKE ?
+                ORDER BY cm.uploaded_at DESC
+                LIMIT 8
+            ");
+            $stmt->execute([$searchWildcard, $searchWildcard, $searchWildcard, $searchWildcard, $searchWildcard]);
+        }
+
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $material) {
+            $title = trim($material['title']) !== '' ? $material['title'] : $material['original_filename'];
             addSearchResult(
                 $results,
-                $notification['message'],
-                'Notification',
-                $notification['link_url'] ?: 'manage_notifications.php',
-                $meta
+                $title,
+                'Course Material',
+                'view_material.php?id=' . intval($material['id']),
+                implode(' • ', array_filter([$material['code'] ?? '', $material['category'] ?? 'Material']))
             );
         }
     }
 
-    if (allowsFilter($filter, 'quiz')) {
-        if ($role === 'teacher') {
+    if (allowsFilter($filter, 'routine')) {
+        if ($role === 'student' && $studentDbId) {
             $stmt = $pdo->prepare("
-                SELECT q.id, q.quiz_name, c.code, cs.section_no
-                FROM quizzes q
-                JOIN course_sections cs ON q.section_id = cs.id
-                JOIN courses c ON cs.course_id = c.id
-                WHERE c.teacher_id = ? AND (q.quiz_name LIKE ? OR c.code LIKE ? OR c.title LIKE ?)
-                ORDER BY q.start_time DESC
-                LIMIT 8
-            ");
-            $stmt->execute([$userPk, $searchWildcard, $searchWildcard, $searchWildcard]);
-        } elseif ($role === 'student' && $studentDbId) {
-            $stmt = $pdo->prepare("
-                SELECT DISTINCT q.id, q.quiz_name, c.code, cs.section_no
-                FROM quizzes q
-                JOIN course_sections cs ON q.section_id = cs.id
-                JOIN courses c ON cs.course_id = c.id
-                JOIN enrollments e ON e.section_id = cs.id
-                WHERE e.student_id = ? AND (q.quiz_name LIKE ? OR c.code LIKE ? OR c.title LIKE ?)
-                ORDER BY q.start_time DESC
-                LIMIT 8
-            ");
-            $stmt->execute([$studentDbId, $searchWildcard, $searchWildcard, $searchWildcard]);
-        } else {
-            $stmt = $pdo->prepare("
-                SELECT q.id, q.quiz_name, c.code, cs.section_no
-                FROM quizzes q
-                JOIN course_sections cs ON q.section_id = cs.id
-                JOIN courses c ON cs.course_id = c.id
-                WHERE q.quiz_name LIKE ? OR c.code LIKE ? OR c.title LIKE ?
-                ORDER BY q.start_time DESC
-                LIMIT 8
-            ");
-            $stmt->execute([$searchWildcard, $searchWildcard, $searchWildcard]);
-        }
-
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $quiz) {
-            addSearchResult($results, $quiz['quiz_name'], 'Quiz', 'student_quiz.php', $quiz['code'] . ' • Sec ' . str_pad($quiz['section_no'], 2, '0', STR_PAD_LEFT));
-        }
-    }
-
-    if (allowsFilter($filter, 'assignment')) {
-        if ($role === 'teacher') {
-            $stmt = $pdo->prepare("
-                SELECT a.assignment_name, c.code, cs.section_no
-                FROM assignments a
-                JOIN course_sections cs ON a.section_id = cs.id
-                JOIN courses c ON cs.course_id = c.id
-                WHERE c.teacher_id = ? AND (a.assignment_name LIKE ? OR c.code LIKE ? OR c.title LIKE ?)
-                ORDER BY a.deadline DESC
-                LIMIT 8
-            ");
-            $stmt->execute([$userPk, $searchWildcard, $searchWildcard, $searchWildcard]);
-        } elseif ($role === 'student' && $studentDbId) {
-            $stmt = $pdo->prepare("
-                SELECT DISTINCT a.assignment_name, c.code, cs.section_no
-                FROM assignments a
-                JOIN course_sections cs ON a.section_id = cs.id
-                JOIN courses c ON cs.course_id = c.id
-                JOIN enrollments e ON e.section_id = cs.id
-                WHERE e.student_id = ? AND (a.assignment_name LIKE ? OR c.code LIKE ? OR c.title LIKE ?)
-                ORDER BY a.deadline DESC
-                LIMIT 8
-            ");
-            $stmt->execute([$studentDbId, $searchWildcard, $searchWildcard, $searchWildcard]);
-        } else {
-            $stmt = $pdo->prepare("
-                SELECT a.assignment_name, c.code, cs.section_no
-                FROM assignments a
-                JOIN course_sections cs ON a.section_id = cs.id
-                JOIN courses c ON cs.course_id = c.id
-                WHERE a.assignment_name LIKE ? OR c.code LIKE ? OR c.title LIKE ?
-                ORDER BY a.deadline DESC
-                LIMIT 8
-            ");
-            $stmt->execute([$searchWildcard, $searchWildcard, $searchWildcard]);
-        }
-
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $assignment) {
-            addSearchResult($results, $assignment['assignment_name'], 'Assignment', 'student_assignments.php', $assignment['code'] . ' • Sec ' . str_pad($assignment['section_no'], 2, '0', STR_PAD_LEFT));
-        }
-    }
-
-    if (allowsFilter($filter, 'grades')) {
-        if ($role === 'teacher') {
-            $stmt = $pdo->prepare("
-                SELECT cs.id AS section_id, c.code, c.title, cs.section_no
-                FROM course_sections cs
-                JOIN courses c ON cs.course_id = c.id
-                WHERE c.teacher_id = ? AND (c.code LIKE ? OR c.title LIKE ?)
-                LIMIT 8
-            ");
-            $stmt->execute([$userPk, $searchWildcard, $searchWildcard]);
-            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $gradeItem) {
-                addSearchResult(
-                    $results,
-                    $gradeItem['code'] . ' - ' . $gradeItem['title'],
-                    'Grade',
-                    'teacher_grading.php?section_id=' . $gradeItem['section_id'],
-                    'Section ' . str_pad($gradeItem['section_no'], 2, '0', STR_PAD_LEFT)
-                );
-            }
-        } elseif ($role === 'student' && $studentDbId) {
-            $stmt = $pdo->prepare("
-                SELECT DISTINCT c.code, c.title, e.score_total, e.score_published
+                SELECT DISTINCT
+                    c.code,
+                    c.title,
+                    cs.section_no,
+                    cs.room_no,
+                    cs.theory_day_1,
+                    cs.theory_day_2,
+                    cs.theory_time_slot,
+                    cs.lab_day,
+                    cs.lab_time_slot
                 FROM enrollments e
                 JOIN course_sections cs ON e.section_id = cs.id
                 JOIN courses c ON cs.course_id = c.id
-                WHERE e.student_id = ? AND (c.code LIKE ? OR c.title LIKE ?)
+                WHERE e.student_id = ?
+                  AND (
+                    c.code LIKE ?
+                    OR c.title LIKE ?
+                    OR cs.room_no LIKE ?
+                    OR cs.theory_day_1 LIKE ?
+                    OR cs.theory_day_2 LIKE ?
+                    OR cs.lab_day LIKE ?
+                    OR cs.theory_time_slot LIKE ?
+                    OR cs.lab_time_slot LIKE ?
+                  )
                 LIMIT 8
             ");
-            $stmt->execute([$studentDbId, $searchWildcard, $searchWildcard]);
-            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $gradeItem) {
-                $meta = !empty($gradeItem['score_published']) && $gradeItem['score_total'] !== null
-                    ? 'Published score: ' . intval($gradeItem['score_total'])
-                    : 'Grade sheet entry';
-                addSearchResult($results, $gradeItem['code'] . ' - ' . $gradeItem['title'], 'Grade', 'grade_sheet.php', $meta);
+            $stmt->execute([
+                $studentDbId,
+                $searchWildcard,
+                $searchWildcard,
+                $searchWildcard,
+                $searchWildcard,
+                $searchWildcard,
+                $searchWildcard,
+                $searchWildcard,
+                $searchWildcard
+            ]);
+
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $routine) {
+                $metaParts = [];
+                if (!empty($routine['theory_day_1']) && !empty($routine['theory_time_slot'])) {
+                    $metaParts[] = $routine['theory_day_1'] . ' ' . $routine['theory_time_slot'];
+                }
+                if (!empty($routine['theory_day_2']) && !empty($routine['theory_time_slot']) && $routine['theory_day_2'] !== $routine['theory_day_1']) {
+                    $metaParts[] = $routine['theory_day_2'] . ' ' . $routine['theory_time_slot'];
+                }
+                if (!empty($routine['lab_day']) && !empty($routine['lab_time_slot'])) {
+                    $metaParts[] = 'Lab: ' . $routine['lab_day'] . ' ' . $routine['lab_time_slot'];
+                }
+                if (!empty($routine['room_no'])) {
+                    $metaParts[] = 'Room ' . $routine['room_no'];
+                }
+
+                addSearchResult(
+                    $results,
+                    $routine['code'] . ' - ' . $routine['title'],
+                    'Routine',
+                    'routine.php',
+                    implode(' • ', $metaParts)
+                );
+            }
+        } else {
+            if (preg_match('/routine|schedule|class|timetable/i', $query)) {
+                addSearchResult($results, 'Routine', 'Feature', 'routine.php', 'Open the weekly class routine page');
             }
         }
     }

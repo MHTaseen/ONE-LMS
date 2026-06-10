@@ -720,11 +720,12 @@ if ($role === 'student' || $role === 'guest') {
             right: 10px;
             top: 50%;
             transform: translateY(-50%);
-            width: 30px;
-            height: 30px;
+            width: 34px;
+            height: 34px;
+            padding: 0;
             border-radius: 50%;
-            border: 1px solid transparent;
-            background: transparent;
+            border: 1px solid var(--border-color);
+            background: var(--input-bg);
             color: var(--text-secondary);
             display: flex;
             align-items: center;
@@ -739,11 +740,16 @@ if ($role === 'student' || $role === 'guest') {
             border-color: rgba(168, 85, 247, 0.18);
         }
         .search-filter-toggle.active {
-            transform: translateY(-50%) rotate(180deg);
+            transform: translateY(-50%);
         }
         .search-filter-toggle svg {
             width: 16px;
             height: 16px;
+            flex-shrink: 0;
+            transition: transform 0.2s ease;
+        }
+        .search-filter-toggle.active svg {
+            transform: rotate(180deg);
         }
         .search-filter-panel {
             position: absolute;
@@ -966,12 +972,32 @@ if ($role === 'student' || $role === 'guest') {
                 max-height: calc(100vh - 32px);
                 overflow-y: auto;
             }
+            .search-filter-toggle { width: 32px; height: 32px; }
         }
 
         /* ── Small Mobile ≤ 600px ── */
         @media (max-width: 600px) {
-            .universal-search-container {
-                display: none;
+            .global-search-nav {
+                align-items: flex-start;
+                padding: 8px 12px 10px;
+                min-height: 64px;
+                height: auto;
+            }
+            .global-search-nav .navbar-left,
+            .global-search-nav .navbar-right {
+                min-height: 44px;
+                align-items: center;
+            }
+            .global-search-nav .universal-search-container {
+                display: block;
+                order: 3;
+                flex: 0 0 100%;
+                width: 100%;
+                max-width: none;
+                margin: 0;
+            }
+            .global-search-nav .universal-search-input {
+                padding-right: 126px;
             }
             .nav-avatar {
                 width: 34px;
@@ -995,6 +1021,9 @@ if ($role === 'student' || $role === 'guest') {
             }
             .dashboard-container {
                 padding: 14px 10px;
+            }
+            .page-content {
+                padding-top: 122px;
             }
             .welcome-header h1 {
                 font-size: 1.4rem;
@@ -1322,7 +1351,7 @@ if ($role === 'student' || $role === 'guest') {
     </style>
     <link rel="stylesheet" href="responsive.css">
 </head>
-<body>
+<body class="landing-page">
 
     <!-- ░░ Ambient Background ░░ -->
     <div class="ambient-glow-1"></div>
@@ -1331,7 +1360,7 @@ if ($role === 'student' || $role === 'guest') {
     <!-- ════════════════════════════════════
          TOP NAVIGATION BAR
     ════════════════════════════════════ -->
-    <nav class="top-navbar" role="navigation" aria-label="Main navigation">
+    <nav class="top-navbar global-search-nav" role="navigation" aria-label="Main navigation">
 
         <!-- Left: initials avatar + brand -->
         <div class="navbar-left">
@@ -1345,23 +1374,19 @@ if ($role === 'student' || $role === 'guest') {
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <input type="text" id="universalSearchInput" class="universal-search-input" placeholder="Search courses, teachers, features..." autocomplete="off">
+            <input type="text" id="universalSearchInput" class="universal-search-input" placeholder="Search messages, materials, routine, features..." autocomplete="off">
             <button type="button" id="searchFilterToggle" class="search-filter-toggle" aria-label="Open search filters" aria-expanded="false">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="6 9 12 15 18 9"></polyline>
                 </svg>
             </button>
             <div id="searchFilterPanel" class="search-filter-panel">
-                <div class="search-filter-title">Filter Results</div>
+                <div class="search-filter-title">Search Type</div>
                 <div class="search-chip-list">
-                    <button type="button" class="search-chip active" data-filter="all">All</button>
-                    <button type="button" class="search-chip" data-filter="course">Course</button>
-                    <button type="button" class="search-chip" data-filter="teacher">Teacher</button>
-                    <button type="button" class="search-chip" data-filter="feature">Feature</button>
-                    <button type="button" class="search-chip" data-filter="notifications">Notifications</button>
-                    <button type="button" class="search-chip" data-filter="quiz">Quiz</button>
-                    <button type="button" class="search-chip" data-filter="assignment">Assignment</button>
-                    <button type="button" class="search-chip" data-filter="grades">Grades</button>
+                    <button type="button" class="search-chip" data-filter="messages">Messages</button>
+                    <button type="button" class="search-chip" data-filter="materials">Course Materials</button>
+                    <button type="button" class="search-chip" data-filter="routine">Routine</button>
+                    <button type="button" class="search-chip active" data-filter="features">App Features</button>
                 </div>
             </div>
             <div id="universalSearchDropdown" class="search-dropdown">
@@ -2381,30 +2406,28 @@ if ($role === 'student' || $role === 'guest') {
         const searchFilterPanel = document.getElementById('searchFilterPanel');
         const searchFilterChips = document.querySelectorAll('.search-chip');
         let searchTimeout = null;
-        let selectedSearchFilter = 'all';
+        let selectedSearchFilter = 'features';
 
         if (searchInput && searchDropdown) {
+            const searchFilterLabels = {
+                messages: 'Messages',
+                materials: 'Course Materials',
+                routine: 'Routine',
+                features: 'App Features'
+            };
+
             const getSearchIcon = (type) => {
                 if (type === 'Feature') {
                     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>';
                 }
-                if (type === 'Teacher') {
-                    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+                if (type === 'Message') {
+                    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
                 }
-                if (type === 'Course') {
-                    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
-                }
-                if (type === 'Notification') {
-                    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>';
-                }
-                if (type === 'Quiz') {
-                    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
-                }
-                if (type === 'Assignment') {
+                if (type === 'Course Material') {
                     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
                 }
-                if (type === 'Grade') {
-                    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>';
+                if (type === 'Routine') {
+                    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
                 }
                 return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/></svg>';
             };
@@ -2473,8 +2496,12 @@ if ($role === 'student' || $role === 'guest') {
                 chip.addEventListener('click', function(e) {
                     e.stopPropagation();
                     selectedSearchFilter = this.dataset.filter;
+                    searchFilterToggle?.setAttribute('aria-label', `Search type: ${searchFilterLabels[selectedSearchFilter] || 'App Features'}`);
                     searchFilterChips.forEach(btn => btn.classList.remove('active'));
                     this.classList.add('active');
+                    searchFilterPanel.classList.remove('active');
+                    searchFilterToggle.classList.remove('active');
+                    searchFilterToggle.setAttribute('aria-expanded', 'false');
                     if (searchInput.value.trim().length > 0) {
                         runSearch();
                     }

@@ -82,10 +82,15 @@ a.drawer-item {
 
 /* ── Navbar (shared across pages) ── */
 .top-navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
     width: 100%;
     max-width: 100vw;
     flex-wrap: wrap;
     gap: 8px;
+    z-index: 920;
 }
 
 .navbar-left,
@@ -542,6 +547,36 @@ table {
 @media (max-width: 600px) {
     .universal-search-container {
         display: none !important;
+    }
+
+    .global-search-nav {
+        align-items: flex-start;
+        padding: 8px 12px 10px !important;
+        min-height: 64px;
+        height: auto !important;
+    }
+
+    .global-search-nav .navbar-left,
+    .global-search-nav .navbar-right {
+        min-height: 44px;
+        align-items: center;
+    }
+
+    .global-search-nav .universal-search-container {
+        display: block !important;
+        order: 3;
+        flex: 0 0 100%;
+        width: 100%;
+        max-width: none;
+        margin: 0;
+    }
+
+    .global-search-nav .universal-search-input {
+        padding-right: 126px !important;
+    }
+
+    body.landing-page .page-content {
+        padding-top: 122px !important;
     }
 
     .theme-btn span {

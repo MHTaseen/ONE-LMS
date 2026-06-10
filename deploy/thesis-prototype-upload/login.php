@@ -99,12 +99,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php endif; ?>
 
-            <form action="login.php" method="POST" autocomplete="on">
+            <form action="login.php" method="POST" autocomplete="off">
+                <input type="text" name="fake_username" autocomplete="username" style="display:none;">
+                <input type="password" name="fake_password" autocomplete="current-password" style="display:none;">
                 <!-- Username / ID Input -->
                 <div class="form-group">
                     <label class="form-label" for="login_input">Institutional Email or ID</label>
                     <div class="input-wrapper">
-                        <input class="form-input" type="text" id="login_input" name="login_input" placeholder="e.g. 21101234 or user@g.bracu.ac.bd" value="<?= htmlspecialchars($loginInput) ?>" autocomplete="username" inputmode="email" required>
+                        <input class="form-input" type="text" id="login_input" name="login_input" placeholder="e.g. 21101234 or user@g.bracu.ac.bd" value="" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="email" required>
                     </div>
                 </div>
 
@@ -112,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-group">
                     <label class="form-label" for="password">Password</label>
                     <div class="input-wrapper" style="position:relative;">
-                        <input class="form-input" type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required style="padding-right:44px;">
+                        <input class="form-input" type="password" id="password" name="password" placeholder="••••••••" value="" autocomplete="new-password" required style="padding-right:44px;">
                         <button type="button" id="togglePassword" aria-label="Show password" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-secondary); cursor:pointer; padding:4px; min-height:auto;">
                             <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                         </button>
@@ -145,6 +147,13 @@ document.getElementById('togglePassword')?.addEventListener('click', function ()
     const show = pw.type === 'password';
     pw.type = show ? 'text' : 'password';
     this.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+});
+
+window.addEventListener('pageshow', function () {
+    const loginInput = document.getElementById('login_input');
+    const passwordInput = document.getElementById('password');
+    if (loginInput) loginInput.value = '';
+    if (passwordInput) passwordInput.value = '';
 });
 </script>
 </body>
