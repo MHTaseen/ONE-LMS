@@ -152,18 +152,29 @@ $initials = count($nameParts) > 1
             position: relative;
             width: 100%;
             padding-top: 56.25%; /* 16:9 Aspect Ratio */
-            background: #000;
+            background: linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(76, 29, 149, 0.88));
         }
 
-        .video-thumb {
+        .video-thumb-placeholder {
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            object-fit: cover;
-            opacity: 0.85;
-            transition: opacity 0.2s;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Space Grotesque', sans-serif;
+            font-size: clamp(3rem, 8vw, 5.5rem);
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.94);
+            background:
+                radial-gradient(circle at center, rgba(168, 85, 247, 0.28) 0%, rgba(168, 85, 247, 0.08) 36%, transparent 68%),
+                linear-gradient(135deg, rgba(7, 11, 19, 0.15), rgba(59, 130, 246, 0.12));
+            letter-spacing: 0.08em;
+            user-select: none;
+            transition: transform 0.2s, opacity 0.2s;
         }
 
-        .video-card:hover .video-thumb {
+        .video-card:hover .video-thumb-placeholder {
+            transform: scale(1.04);
             opacity: 1;
         }
 
@@ -393,7 +404,7 @@ $initials = count($nameParts) > 1
             <!-- Box 1 -->
             <div class="video-card" data-video-src="https://www.youtube.com/embed/W6NZfCO5SIk?autoplay=1">
                 <div class="video-thumb-wrap">
-                    <img src="https://img.youtube.com/vi/W6NZfCO5SIk/hqdefault.jpg" alt="Video Thumbnail" class="video-thumb">
+                    <div class="video-thumb-placeholder" aria-hidden="true">1</div>
                     <div class="video-play-icon">
                         <svg viewBox="0 0 24 24" fill="currentColor" style="width:24px;height:24px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                     </div>
@@ -407,7 +418,7 @@ $initials = count($nameParts) > 1
             <!-- Box 2 -->
             <div class="video-card" data-video-src="https://www.youtube.com/embed/PkZNo7MFOUg?autoplay=1">
                 <div class="video-thumb-wrap">
-                    <img src="https://img.youtube.com/vi/PkZNo7MFOUg/hqdefault.jpg" alt="Video Thumbnail" class="video-thumb">
+                    <div class="video-thumb-placeholder" aria-hidden="true">2</div>
                     <div class="video-play-icon">
                         <svg viewBox="0 0 24 24" fill="currentColor" style="width:24px;height:24px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                     </div>
@@ -421,7 +432,7 @@ $initials = count($nameParts) > 1
             <!-- Box 3 -->
             <div class="video-card" data-video-src="https://www.youtube.com/embed/1Rs2ND1ryYc?autoplay=1">
                 <div class="video-thumb-wrap">
-                    <img src="https://img.youtube.com/vi/1Rs2ND1ryYc/hqdefault.jpg" alt="Video Thumbnail" class="video-thumb">
+                    <div class="video-thumb-placeholder" aria-hidden="true">3</div>
                     <div class="video-play-icon">
                         <svg viewBox="0 0 24 24" fill="currentColor" style="width:24px;height:24px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                     </div>

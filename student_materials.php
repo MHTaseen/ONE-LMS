@@ -82,7 +82,7 @@ if ($active_course_id && !$active_cat) {
 }
 
 $public_library_materials = [];
-if (!$active_course_id && $view_mode === 'all' && $role === 'guest') {
+if (!$active_course_id && $view_mode === 'all') {
     $stmt = $pdo->prepare("
         SELECT cm.*, c.code AS course_code, c.title AS course_title, t.full_name AS teacher_name
         FROM course_materials cm
@@ -274,8 +274,9 @@ function formatBytes($size, $precision = 2) {
         .breadcrumb span { color: var(--text-secondary); }
 
         /* Search Bar */
-        .mat-search-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
-        .mat-search-inner { position: relative; flex: 1; max-width: 420px; }
+        .mat-search-wrap { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 24px; }
+        .mat-search-inner { position: relative; flex: 1; max-width: 420px; display: flex; flex-direction: column; gap: 8px; }
+        .mat-search-field { position: relative; width: 100%; }
         .mat-search-inner svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--text-secondary); pointer-events: none; }
         .mat-search-input { width: 100%; padding: 10px 132px 10px 40px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 12px; color: var(--text-primary); font-size: 0.95rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
         .mat-search-input:focus { border-color: var(--accent-primary); box-shadow: var(--glow-shadow); }
@@ -323,10 +324,6 @@ function formatBytes($size, $precision = 2) {
             transform: rotate(180deg);
         }
         .mat-search-filter-panel {
-            position: absolute;
-            top: calc(100% + 8px);
-            left: 0;
-            right: 0;
             display: none;
             padding: 12px;
             background: var(--bg-secondary);
@@ -448,14 +445,16 @@ function formatBytes($size, $precision = 2) {
         <?php else: ?>
             <div class="mat-search-wrap">
                 <div class="mat-search-inner">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" id="matSearchInput" class="mat-search-input" placeholder="<?= ($role === 'guest' && $view_mode === 'all') ? 'Search public materials globally...' : 'Search courses or specific materials globally...' ?>" autocomplete="off">
-                    <button type="button" id="matSearchFilterToggle" class="mat-search-filter-toggle" aria-label="Open material filters" aria-expanded="false">
-                        <span id="matSearchFilterLabel">All Types</span>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
+                    <div class="mat-search-field">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input type="text" id="matSearchInput" class="mat-search-input" placeholder="<?= ($role === 'guest' && $view_mode === 'all') ? 'Search public materials globally...' : 'Search courses or specific materials globally...' ?>" autocomplete="off">
+                        <button type="button" id="matSearchFilterToggle" class="mat-search-filter-toggle" aria-label="Open material filters" aria-expanded="false">
+                            <span id="matSearchFilterLabel">All Types</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                    </div>
                     <div id="matSearchFilterPanel" class="mat-search-filter-panel">
                         <div class="mat-search-filter-title">Content Type</div>
                         <div class="mat-search-filter-list">
@@ -471,7 +470,7 @@ function formatBytes($size, $precision = 2) {
                 </div>
                 <span class="mat-search-count" id="matSearchCount"></span>
             </div>
-            <?php if ($role === 'guest' && $view_mode === 'all'): ?>
+            <?php if ($view_mode === 'all'): ?>
                 <?php if (empty($public_library_materials)): ?>
                     <div style="padding: 40px; text-align: center; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; color: var(--text-secondary);">
                         No public materials found.
@@ -481,7 +480,7 @@ function formatBytes($size, $precision = 2) {
                         <?php foreach ($public_library_materials as $m): 
                             $ext = strtoupper(pathinfo($m['original_filename'], PATHINFO_EXTENSION));
                             $isVid = in_array(strtolower($ext), ['mp4', 'webm', 'ogg']);
-                            $is_locked = !empty($m['is_private']);
+                            $is_locked = ($role === 'guest' && !empty($m['is_private']));
                         ?>
                             <?php if ($is_locked): ?>
                                 <div class="library-card locked">

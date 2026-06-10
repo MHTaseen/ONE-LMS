@@ -43,7 +43,113 @@ $joining_semester = 'N/A';
 
 // Fetch user's extra stats from DB (for both students and teachers)
 require_once 'config.php';
+require_once 'includes/grading.php';
 require_once 'includes/notification_system.php';
+
+function computePublishedStudentCgpa(PDO $pdo, int $studentId): string
+{
+    $stmt = $pdo->prepare("
+        SELECT c.credit, e.score_total, e.score_published
+        FROM enrollments e
+        JOIN course_sections cs ON e.section_id = cs.id
+        JOIN courses c ON cs.course_id = c.id
+        WHERE e.student_id = ?
+    ");
+    $stmt->execute([$studentId]);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $totalCreditPoints = 0.0;
+    $totalAttemptedCredits = 0.0;
+
+    foreach ($rows as $row) {
+        if (empty($row['score_published']) || $row['score_total'] === null) {
+            continue;
+        }
+
+        $gradeInfo = getGradeInfo($row['score_total']);
+        if ($gradeInfo['point'] === null) {
+            continue;
+        }
+
+        $credit = (float) $row['credit'];
+        $totalAttemptedCredits += $credit;
+        $totalCreditPoints += $credit * (float) $gradeInfo['point'];
+    }
+
+    return $totalAttemptedCredits > 0
+        ? number_format($totalCreditPoints / $totalAttemptedCredits, 2)
+        : 'N/A';
+}
+
+function parseNotificationDeadlineTimestamp(string $message): ?int
+{
+    if (preg_match('/^Deadline:\s*(.+)$/mi', $message, $matches) !== 1) {
+        return null;
+    }
+
+    $timestamp = strtotime(trim($matches[1]));
+    return $timestamp !== false ? $timestamp : null;
+}
+
+function resolveNotificationExpiryTimestamp(PDO $pdo, array $notification): ?int
+{
+    $message = trim(str_replace("\r", '', (string) ($notification['message'] ?? '')));
+    $firstLine = strtok($message, "\n") ?: $message;
+
+    if (preg_match('/^New Quiz Scheduled in\s+([A-Z0-9]+)\s+\(Sec\s+(\d+)\):\s+(.+?)\s+on\s+[A-Z][a-z]{2}\s+\d{1,2},\s+\d{4}\s+\d{1,2}:\d{2}\s+[AP]M$/', $firstLine, $matches) === 1) {
+        $courseCode = trim($matches[1]);
+        $sectionNo = (int) $matches[2];
+        $quizName = trim($matches[3]);
+
+        $stmt = $pdo->prepare("
+            SELECT q.end_time
+            FROM quizzes q
+            JOIN course_sections cs ON q.section_id = cs.id
+            JOIN courses c ON cs.course_id = c.id
+            WHERE c.code = ? AND cs.section_no = ? AND q.quiz_name = ?
+            ORDER BY q.id DESC
+            LIMIT 1
+        ");
+        $stmt->execute([$courseCode, $sectionNo, $quizName]);
+        $endTime = $stmt->fetchColumn();
+
+        if (!empty($endTime)) {
+            $timestamp = strtotime((string) $endTime);
+            return $timestamp !== false ? $timestamp : null;
+        }
+    }
+
+    if (preg_match('/^New Assignment Deployed in\s+([A-Z0-9]+)\s+\(Sec\s+(\d+)\):\s+(.+)$/', $firstLine, $matches) === 1) {
+        $courseCode = trim($matches[1]);
+        $sectionNo = (int) $matches[2];
+        $assignmentName = trim($matches[3]);
+
+        $stmt = $pdo->prepare("
+            SELECT a.deadline
+            FROM assignments a
+            JOIN course_sections cs ON a.section_id = cs.id
+            JOIN courses c ON cs.course_id = c.id
+            WHERE c.code = ? AND cs.section_no = ? AND a.assignment_name = ?
+            ORDER BY a.id DESC
+            LIMIT 1
+        ");
+        $stmt->execute([$courseCode, $sectionNo, $assignmentName]);
+        $deadline = $stmt->fetchColumn();
+
+        if (!empty($deadline)) {
+            $timestamp = strtotime((string) $deadline);
+            return $timestamp !== false ? $timestamp : null;
+        }
+    }
+
+    return parseNotificationDeadlineTimestamp($message);
+}
+
+function shouldHideImportantNotificationCard(PDO $pdo, array $notification): bool
+{
+    $expiryTimestamp = resolveNotificationExpiryTimestamp($pdo, $notification);
+    return $expiryTimestamp !== null && $expiryTimestamp < time();
+}
 
 // Fetch Notifications
 $unreadCount = getUnreadCount($pdo, $_SESSION['user_pk']);
@@ -51,13 +157,16 @@ $stmt = $pdo->prepare("SELECT * FROM notifications WHERE user_id = ? AND deleted
 $stmt->execute([$_SESSION['user_pk']]);
 $recentNotifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$stmt = $pdo->prepare("SELECT cgpa, current_semester, joining_semester FROM users WHERE id = ?");
+$stmt = $pdo->prepare("SELECT current_semester, joining_semester FROM users WHERE id = ?");
 $stmt->execute([$_SESSION['user_pk']]);
 $userStats = $stmt->fetch();
 if ($userStats) {
-    $cgpa = $userStats['cgpa'] !== null ? number_format((float)$userStats['cgpa'], 2) : 'N/A';
     $current_semester = $userStats['current_semester'] ?? 'N/A';
     $joining_semester = $userStats['joining_semester'] ?? 'N/A';
+}
+
+if ($role === 'student') {
+    $cgpa = computePublishedStudentCgpa($pdo, (int) $_SESSION['user_pk']);
 }
 
 $stmt = $pdo->query("SELECT setting_value FROM settings WHERE setting_key = 'advising_open'");
@@ -117,7 +226,7 @@ if ($role === 'student' || $role === 'guest') {
             top: 0;
             left: 0;
             right: 0;
-            height: 64px;
+            min-height: 64px;
             z-index: 900;
             display: flex;
             align-items: center;
@@ -197,7 +306,7 @@ if ($role === 'student' || $role === 'guest') {
         ════════════════════════════════════ */
         .drawer-section {
             position: fixed;
-            top: 64px;   /* sits flush under the navbar */
+            top: var(--landing-top-nav-offset, 64px);   /* sits flush under the navbar */
             left: 0;
             z-index: 800;
         }
@@ -539,8 +648,11 @@ if ($role === 'student' || $role === 'guest') {
 
         /* Page content area (push below fixed navbar) */
         .page-content {
-            padding-top: 64px;
+            padding-top: var(--landing-top-nav-offset, 64px);
             min-height: 100vh;
+        }
+        .page-content > .dashboard-container:first-of-type {
+            padding-top: 72px;
         }
 
         /* ── Student Dashboard Grid ── */
@@ -689,6 +801,13 @@ if ($role === 'student' || $role === 'guest') {
             flex: 1;
             max-width: 400px;
             margin: 0 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .universal-search-field {
+            position: relative;
+            width: 100%;
         }
         .universal-search-input {
             width: 100%;
@@ -746,10 +865,7 @@ if ($role === 'student' || $role === 'guest') {
             height: 16px;
         }
         .search-filter-panel {
-            position: absolute;
-            top: calc(100% + 8px);
-            left: 0;
-            right: 0;
+            display: none;
             padding: 12px;
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
@@ -758,7 +874,6 @@ if ($role === 'student' || $role === 'guest') {
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             z-index: 1001;
-            display: none;
         }
         .search-filter-panel.active {
             display: block;
@@ -871,7 +986,7 @@ if ($role === 'student' || $role === 'guest') {
 
         /* Page content below the fixed navbar */
         .page-content {
-            padding-top: 64px; /* offset for fixed navbar */
+            padding-top: var(--landing-top-nav-offset, 64px); /* offset for fixed navbar */
         }
         .dashboard-container {
             padding: 40px 28px;
@@ -1205,7 +1320,7 @@ if ($role === 'student' || $role === 'guest') {
             display: none;
             position: fixed;
             inset: 0;
-            top: 56px;
+            top: var(--landing-top-nav-offset, 64px);
             background: rgba(7, 11, 20, 0.65);
             backdrop-filter: blur(2px);
             /* Keep the backdrop BELOW the drawer so menu items remain clickable */
@@ -1279,9 +1394,9 @@ if ($role === 'student' || $role === 'guest') {
             }
 
             .page-content {
-                padding-top: 64px;
+                padding-top: var(--landing-top-nav-offset, 64px);
             }
-            .dashboard-container:first-of-type {
+            .page-content > .dashboard-container:first-of-type {
                 padding-top: 18px;
             }
             .welcome-header {
@@ -1341,16 +1456,18 @@ if ($role === 'student' || $role === 'guest') {
 
         <!-- Universal Search Bar -->
         <div class="universal-search-container">
-            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" id="universalSearchInput" class="universal-search-input" placeholder="Search courses, teachers, features..." autocomplete="off">
-            <button type="button" id="searchFilterToggle" class="search-filter-toggle" aria-label="Open search filters" aria-expanded="false">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
+            <div class="universal-search-field">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
-            </button>
+                <input type="text" id="universalSearchInput" class="universal-search-input" placeholder="Search courses, teachers, features..." autocomplete="off">
+                <button type="button" id="searchFilterToggle" class="search-filter-toggle" aria-label="Open search filters" aria-expanded="false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+            </div>
             <div id="searchFilterPanel" class="search-filter-panel">
                 <div class="search-filter-title">Filter Results</div>
                 <div class="search-chip-list">
@@ -1959,6 +2076,10 @@ if ($role === 'student' || $role === 'guest') {
             ");
             $stmtImp->execute([$_SESSION['user_pk']]);
             $importantNotifs = $stmtImp->fetchAll(PDO::FETCH_ASSOC);
+            $importantNotifs = array_values(array_filter(
+                $importantNotifs,
+                fn ($notification) => !shouldHideImportantNotificationCard($pdo, $notification)
+            ));
 
             // ── Routine inline widget data ──
             try {
@@ -2252,9 +2373,23 @@ if ($role === 'student' || $role === 'guest') {
 
     // Drawer Logic
     document.addEventListener('DOMContentLoaded', () => {
+        const topNavbar = document.querySelector('.top-navbar');
+        const syncTopNavbarOffset = () => {
+            if (!topNavbar) return;
+            document.documentElement.style.setProperty('--landing-top-nav-offset', `${Math.ceil(topNavbar.getBoundingClientRect().height)}px`);
+        };
+
+        syncTopNavbarOffset();
+
+        if (topNavbar && typeof ResizeObserver !== 'undefined') {
+            const topNavbarResizeObserver = new ResizeObserver(syncTopNavbarOffset);
+            topNavbarResizeObserver.observe(topNavbar);
+        } else {
+            window.addEventListener('resize', syncTopNavbarOffset);
+        }
+
 
         /* ── Drawer toggle ── */
-        const drawerBtn      = document.getElementById('drawerToggleBtn');
         const drawerDropdown = document.getElementById('drawerDropdown');
         const drawerBackdrop = document.getElementById('drawerBackdrop');
         const isMobileDrawer = window.matchMedia('(max-width: 768px)');
