@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // manage_notifications.php - User preferences for notifications
 session_start();
 if (!isset($_SESSION['user_id'])) {
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Manage Notifications - BRACU Thesis</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        .top-navbar { position: fixed; top: 0; left: 0; right: 0; height: 64px; z-index: 900; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: 0 2px 20px rgba(0,0,0,.25); }
+        .top-navbar { position: fixed; top: 0; left: 0; right: 0; height: auto; min-height: 64px; z-index: 900; display: flex; align-items: center; padding: 10px 28px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: 0 2px 20px rgba(0,0,0,.25); }
         .navbar-left  { display: flex; align-items: center; gap: 14px; }
         .navbar-right { display: flex; align-items: center; gap: 12px; }
         .navbar-brand { font-family: 'Space Grotesque', sans-serif; font-size: 1.15rem; font-weight: 700; background: var(--gradient-accent); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
@@ -81,7 +81,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .setting-row {
             display: flex;
             align-items: center;
-            justify-content: space-between;
             padding: 20px 0;
             border-bottom: 1px solid var(--border-color);
         }
@@ -150,14 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
 
-<nav class="top-navbar">
-    <div class="navbar-left">
-        <span class="navbar-brand">BRAC University Hub</span>
-    </div>
-    <div class="navbar-right">
-        <a href="landing.php" class="nav-btn-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><polyline points="15 18 9 12 15 6"/></svg> Back to Dashboard</a>
-    </div>
-</nav>
+<?php include 'includes/global_nav.php'; ?>
 <?php include 'includes/shared_drawer.php'; ?>
 
 
@@ -244,5 +236,6 @@ document.querySelectorAll('.pref-toggle').forEach(toggle => {
     });
 });
 </script>
+<?php include 'includes/global_search_js.php'; ?>
 </body>
 </html>

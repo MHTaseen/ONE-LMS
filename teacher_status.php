@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // teacher_status.php – Teacher access only
 session_start();
 
@@ -82,9 +82,9 @@ try {
         body { justify-content: flex-start; align-items: stretch; padding-top: 0; }
 
         .top-navbar {
-            position: fixed; top: 0; left: 0; right: 0; height: 64px;
-            z-index: 900; display: flex; align-items: center; justify-content: space-between;
-            padding: 0 28px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);
+            position: fixed; top: 0; left: 0; right: 0; height: auto; min-height: 64px;
+            z-index: 900; display: flex; align-items: center; 
+            padding: 10px 28px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);
             backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
             box-shadow: 0 2px 20px rgba(0,0,0,.25);
         }
@@ -107,7 +107,7 @@ try {
         }
         
         .section-header {
-            padding: 20px 24px; display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 24px; display: flex;  align-items: center;
             cursor: pointer; user-select: none; transition: background 0.2s;
         }
         .section-header:hover { background: rgba(168, 85, 247, 0.05); }
@@ -171,24 +171,7 @@ try {
     <div class="ambient-glow-1"></div>
     <div class="ambient-glow-2"></div>
 
-    <nav class="top-navbar">
-        <div class="navbar-left">
-            <div class="nav-avatar"><?= $initials ?></div>
-            <span class="navbar-brand">BRAC University Hub</span>
-        </div>
-        <div class="navbar-right">
-            <a href="landing.php" class="btn-back">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg> Back
-            </a>
-            <div class="theme-switch-container">
-                <button id="themeToggleBtn" class="theme-btn" aria-label="Toggle theme">
-                    <svg class="sun-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.01c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/></svg>
-                    <svg class="moon-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12.3 22h-.1c-5.5 0-10-4.5-10-10 0-4.7 3.3-8.8 8-9.7.3-.1.6 0 .8.2.2.2.3.6.1.8-1.5 2.1-1.1 5.1.9 6.8 1.8 1.6 4.7 1.6 6.5-.1.2-.2.5-.2.8-.1.2.2.3.5.2.8-.9 4.7-5 8-9.7 8z"/></svg>
-                    <span>Theme Toggle</span>
-                </button>
-            </div>
-        </div>
-    </nav>
+    <?php include 'includes/global_nav.php'; ?>
 <?php include 'includes/shared_drawer.php'; ?>
 
 
@@ -275,5 +258,6 @@ try {
             }
         }
     </script>
+<?php include 'includes/global_search_js.php'; ?>
 </body>
 </html>

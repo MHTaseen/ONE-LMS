@@ -1204,3 +1204,59 @@ input:checked + .switch-slider:before {
     }
 }
 
+
+/* ============================================================
+   GLOBAL SEARCH NAV — nav modifier when search bar is present
+   ============================================================ */
+/* Ensure the navbar can grow when the search bar is included */
+.top-navbar.global-search-nav {
+    height: auto;
+    min-height: 64px;
+    align-items: center;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+/* On mobile: allow wrapping so search bar drops below logo row */
+@media (max-width: 600px) {
+    .top-navbar.global-search-nav {
+        flex-wrap: wrap;
+        padding: 8px 12px 10px;
+    }
+    .top-navbar.global-search-nav .navbar-left {
+        flex: 0 0 auto;
+    }
+    .top-navbar.global-search-nav .navbar-right {
+        flex: 0 0 auto;
+    }
+    .top-navbar.global-search-nav .universal-search-container {
+        order: 3;
+        flex: 0 0 100%;
+        max-width: 100%;
+        width: 100%;
+        margin: 6px 0 0;
+    }
+}
+
+/* Ensure global-search-nav has space-between by default if not set inline */
+.top-navbar.global-search-nav {
+    justify-content: space-between !important;
+}
+
+/* ============================================================
+   NOTIFICATION & THEME BUTTON STYLES (Extracted from landing.php)
+   ============================================================ */
+.notif-wrapper { position: relative; display: flex; align-items: center; }
+.notif-btn { background: transparent; border: none; color: var(--text-secondary); cursor: pointer; position: relative; padding: 4px; transition: color 0.2s; }
+.notif-btn:hover { color: var(--text-primary); }
+.notif-badge { position: absolute; top: -2px; right: -2px; background: #ef4444; color: #fff; font-size: 0.65rem; font-weight: 700; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg-secondary); }
+.notif-dropdown { position: absolute; top: 40px; right: 0; width: 320px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--glow-shadow); display: none; flex-direction: column; overflow: hidden; z-index: 1000; }
+.notif-dropdown.show { display: flex; }
+.notif-header { padding: 12px 16px; font-weight: 600; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.notif-list { max-height: 300px; overflow-y: auto; }
+.notif-item { padding: 12px 16px; border-bottom: 1px solid var(--border-color); text-decoration: none; color: var(--text-primary); display: flex; flex-direction: column; gap: 4px; transition: 0.2s; }
+.notif-item:hover { background: rgba(168,85,247,0.1); }
+.notif-item.unread { background: rgba(168,85,247,0.05); border-left: 3px solid var(--accent-primary); }
+.notif-time { font-size: 0.75rem; color: var(--text-secondary); }
+
+/* Override theme-switch-container positioning - now lives inside nav */
+.theme-switch-container { position: static; }
