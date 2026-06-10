@@ -1,0 +1,9 @@
+<?php
+// Copy this file to config.production.php on your live server and fill in values
+// from your hosting panel (InfinityFree → MySQL Databases).
+
+define('DB_HOST', 'sql123.infinityfree.com');  // your MySQL hostname
+define('DB_PORT', '3306');                      // usually 3306 on free hosts
+define('DB_USER', 'if0_XXXXXXX');               // MySQL username
+define('DB_PASS', 'your_mysql_password');       // MySQL password
+define('DB_NAME', 'if0_XXXXXXX_bracu');         // MySQL database name

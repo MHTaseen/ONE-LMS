@@ -1,0 +1,20 @@
+DirectoryIndex login.php index.php landing.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Optional: redirect to login if someone opens the folder root without a file
+    RewriteRule ^$ login.php [L]
+</IfModule>
+
+# Block direct access to production secrets
+<Files "config.production.php">
+    Require all denied
+</Files>
+
+# Block access to deploy exports and local-only scripts
+<FilesMatch "^(config\.production\.php\.example|db_dump\.php|check_db\.php|check_.*\.php|migrate_.*\.php|update_quiz_schema\.php|debug_.*\.php)$">
+    Require all denied
+</FilesMatch>
+
+# Prevent directory listing
+Options -Indexes

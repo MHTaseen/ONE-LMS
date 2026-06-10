@@ -1,0 +1,749 @@
+/* responsive.css — Global responsive system for all devices
+   Load AFTER style.css and page-specific <style> blocks */
+
+/* ── Foundation ── */
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    scroll-behavior: smooth;
+}
+
+body {
+    overflow-x: clip;
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+    max-width: 100vw;
+}
+
+body.drawer-open {
+    overflow: hidden;
+}
+
+/* Touch-friendly horizontal scroll regions (routine tables, etc.) */
+.scroll-x-touch,
+.routine-scroll-wrap {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+}
+
+.scroll-x-touch table,
+.routine-scroll-wrap table {
+    width: max-content;
+    min-width: 100%;
+}
+
+img, video, svg, canvas, iframe {
+    max-width: 100%;
+    height: auto;
+}
+
+input, select, textarea, button {
+    max-width: 100%;
+}
+
+/* Touch-friendly minimum targets */
+button,
+.btn-primary,
+.btn-save,
+.btn-back,
+.nav-btn-back,
+.drawer-btn,
+.tab-btn,
+.attach-btn,
+.file-attach-btn,
+.send-btn,
+.interactive-btn,
+a.drawer-item {
+    min-height: 44px;
+}
+
+/* ── Universal page shells ── */
+.page-container,
+.page-wrap,
+.page-wrapper,
+.main-wrapper,
+.inner-container,
+.content-area,
+.page-content-inner,
+.dashboard-wrapper,
+.dashboard-container,
+.main-container {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* ── Navbar (shared across pages) ── */
+.top-navbar {
+    width: 100%;
+    max-width: 100vw;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.navbar-left,
+.navbar-right {
+    flex-shrink: 0;
+}
+
+.nav-btn-back,
+.btn-back {
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ── Scrollable tables everywhere ── */
+.table-wrap,
+.table-responsive,
+.table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+}
+
+.table-wrap table,
+.table-responsive table,
+.table-wrapper table,
+table {
+    width: 100%;
+    min-width: 520px;
+}
+
+/* ── Grids collapse gracefully ── */
+.section-grid,
+.card-grid,
+.student-grid,
+.teacher-grid,
+.form-grid,
+.grid-2col,
+.stats-grid,
+.summary-strip,
+.button-demo-list {
+    width: 100%;
+}
+
+/* ── Sidebar + main layouts (communication, etc.) ── */
+.layout {
+    width: 100%;
+    max-width: 100vw;
+    min-height: 0;
+}
+
+.sidebar {
+    flex-shrink: 0;
+}
+
+.main-chat,
+.main-content,
+.main-panel {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+/* ── Tabs: horizontal scroll on narrow screens ── */
+.tabs,
+.section-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    scrollbar-width: thin;
+    max-width: 100%;
+    padding-bottom: 4px;
+}
+
+.tabs::-webkit-scrollbar,
+.section-tabs::-webkit-scrollbar {
+    height: 4px;
+}
+
+.tab-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* ── Chat interfaces ── */
+.chat-container {
+    min-height: 320px;
+    max-height: calc(100dvh - 140px);
+}
+
+.chat-messages,
+.chat-input,
+.chat-input-area {
+    min-width: 0;
+}
+
+.msg,
+.message-row .bubble {
+    max-width: 85%;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.chat-input form,
+.chat-input-area {
+    flex-wrap: wrap;
+}
+
+.grade-form {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* ── Modals & overlays ── */
+.modal-overlay,
+.popup-overlay {
+    padding: 12px;
+    align-items: flex-start;
+    overflow-y: auto;
+}
+
+.profile-modal,
+.modal-content,
+.popup-card {
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+    margin: auto;
+}
+
+/* ── Drawer ── */
+.drawer-dropdown {
+    max-height: calc(100dvh - 100px);
+    overflow-y: auto;
+}
+
+/* ── Notifications dropdown ── */
+.notif-dropdown {
+    max-width: calc(100vw - 16px);
+}
+
+/* ── Forms & cards ── */
+.auth-container {
+    width: 100%;
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+}
+
+.filter-row,
+.action-row,
+.btn-row,
+.total-actions-bar {
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+/* ══════════════════════════════════════
+   BREAKPOINTS
+══════════════════════════════════════ */
+
+/* Large tablets / small laptops */
+@media (max-width: 1200px) {
+    .page-container,
+    .page-wrap {
+        padding-left: 24px;
+        padding-right: 24px;
+    }
+
+    .universal-search-container {
+        max-width: 260px;
+    }
+}
+
+/* Tablets */
+@media (max-width: 992px) {
+    .page-container {
+        padding: 88px 20px 32px !important;
+    }
+
+    .page-wrap,
+    .page-wrapper,
+    .main-wrapper,
+    .inner-container,
+    .content-area,
+    .page-content-inner {
+        padding: 88px 20px 40px !important;
+    }
+
+    .dashboard-container {
+        padding: 24px 18px !important;
+    }
+
+    .header h1,
+    .page-heading,
+    h1.page-title {
+        font-size: 1.85rem !important;
+    }
+
+    .section-grid,
+    .card-grid,
+    .student-grid,
+    .teacher-grid {
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+    }
+
+    .form-grid,
+    .grid-2col {
+        grid-template-columns: 1fr !important;
+    }
+
+    .summary-strip {
+        gap: 12px;
+    }
+
+    .sum-card {
+        min-width: 120px;
+    }
+
+    /* Stack sidebar layouts */
+    .layout {
+        flex-direction: column !important;
+        height: auto !important;
+        min-height: calc(100dvh - 64px);
+        padding-top: 64px;
+    }
+
+    .sidebar {
+        width: 100% !important;
+        max-height: 220px;
+        border-right: none !important;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .main-chat {
+        min-height: calc(100dvh - 300px);
+        flex: 1;
+    }
+
+    .chat-header {
+        padding: 16px 20px !important;
+    }
+
+    .chat-messages {
+        padding: 20px 16px !important;
+    }
+
+    .chat-input,
+    .chat-input-area {
+        padding: 16px !important;
+    }
+
+    .chat-container {
+        height: calc(100dvh - 120px) !important;
+        border-radius: 16px;
+    }
+}
+
+/* Mobile landscape & large phones */
+@media (max-width: 768px) {
+    .top-navbar {
+        padding: 8px 12px !important;
+        min-height: 56px;
+        height: auto !important;
+    }
+
+    .navbar-brand {
+        display: none;
+    }
+
+    .universal-search-container {
+        max-width: 140px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .universal-search-input {
+        font-size: 0.85rem !important;
+        padding: 8px 10px 8px 32px !important;
+    }
+
+    .notif-dropdown {
+        position: fixed !important;
+        top: 60px !important;
+        left: 8px !important;
+        right: 8px !important;
+        width: auto !important;
+    }
+
+    .page-container {
+        padding: 76px 14px 28px !important;
+    }
+
+    .page-wrap,
+    .page-wrapper,
+    .main-wrapper,
+    .inner-container {
+        padding: 76px 14px 32px !important;
+    }
+
+    .dashboard-container {
+        padding: 16px 12px !important;
+    }
+
+    .header h1,
+    .page-heading,
+    h1.page-title {
+        font-size: 1.55rem !important;
+    }
+
+    .header p,
+    .page-subheading {
+        font-size: 0.92rem !important;
+    }
+
+    .section-grid,
+    .card-grid,
+    .student-grid,
+    .teacher-grid,
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 14px !important;
+    }
+
+    .section-tabs,
+    .tabs {
+        gap: 8px;
+    }
+
+    .tab-btn {
+        padding: 8px 14px !important;
+        font-size: 0.85rem !important;
+    }
+
+    .table-wrap,
+    .table-responsive {
+        border-radius: 12px;
+        margin-left: -2px;
+        margin-right: -2px;
+    }
+
+    table {
+        min-width: 480px;
+        font-size: 0.88rem;
+    }
+
+    th, td {
+        padding: 10px 12px !important;
+    }
+
+    .btn-row,
+    .total-actions-bar {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+
+    .btn-primary,
+    .submit-btn,
+    .action-btn,
+    .total-actions-bar button,
+    .total-actions-bar .btn-save {
+        width: 100%;
+    }
+
+    .modal-content,
+    .popup-card,
+    .profile-modal {
+        width: calc(100% - 20px) !important;
+        margin: 10px !important;
+        padding: 24px 18px !important;
+    }
+
+    .drawer-dropdown {
+        width: calc(100vw - 24px) !important;
+        max-width: 320px;
+        left: 8px !important;
+    }
+
+    .drawer-btn {
+        margin-left: 12px !important;
+    }
+
+    .chat-container {
+        height: calc(100dvh - 100px) !important;
+        border-radius: 14px;
+    }
+
+    .bubble,
+    .msg-bubble {
+        max-width: 90% !important;
+    }
+
+    .chat-input-area,
+    .chat-input form {
+        gap: 10px !important;
+    }
+
+    .file-attach-btn,
+    .send-btn,
+    .attach-btn {
+        width: 44px !important;
+        height: 44px !important;
+        flex-shrink: 0;
+    }
+
+    .chat-input button[type="submit"] {
+        padding: 0 18px !important;
+        width: auto;
+        min-width: 72px;
+    }
+
+    .mention-dropdown {
+        left: 12px !important;
+        right: 12px !important;
+        width: auto !important;
+        max-width: none !important;
+    }
+
+    .score-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    .course-card-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+
+    .welcome-header h1 {
+        font-size: 1.5rem !important;
+    }
+
+    .button-demo-list {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+    }
+
+    .interactive-btn {
+        min-height: 72px;
+        font-size: 0.8rem !important;
+    }
+
+    .student-card,
+    .teacher-card,
+    .section-card {
+        padding: 18px !important;
+    }
+
+    .read-only-notice,
+    .post-error {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+    }
+}
+
+/* Small phones */
+@media (max-width: 600px) {
+    .universal-search-container {
+        display: none !important;
+    }
+
+    .theme-btn span {
+        display: none;
+    }
+
+    .theme-btn {
+        padding: 8px 10px !important;
+    }
+
+    .theme-fixed {
+        top: 12px;
+        right: 12px;
+    }
+
+    .nav-avatar {
+        width: 34px !important;
+        height: 34px !important;
+        font-size: 0.8rem !important;
+    }
+
+    .navbar-right {
+        gap: 6px !important;
+    }
+
+    .nav-btn-back span,
+    .nav-btn-back {
+        font-size: 0.85rem !important;
+        padding: 8px 12px !important;
+    }
+
+    .page-container {
+        padding: 72px 10px 24px !important;
+    }
+
+    .page-wrap,
+    .page-wrapper {
+        padding: 72px 10px 28px !important;
+    }
+
+    .dashboard-container {
+        padding: 12px 10px !important;
+    }
+
+    .header h1,
+    .page-heading {
+        font-size: 1.35rem !important;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .stat-card .val,
+    .sum-value {
+        font-size: 1.5rem !important;
+    }
+
+    table {
+        min-width: 420px;
+        font-size: 0.82rem;
+    }
+
+    th, td {
+        padding: 8px 10px !important;
+    }
+
+    .grade-input {
+        width: 60px !important;
+    }
+
+    .grade-form {
+        justify-content: flex-start;
+    }
+
+    .sidebar {
+        max-height: 180px;
+    }
+
+    .sec-item {
+        padding: 12px 16px !important;
+    }
+
+    .auth-card {
+        padding: 22px 16px !important;
+        border-radius: 16px !important;
+    }
+
+    .auth-container {
+        margin: 20px 0 !important;
+    }
+
+    .form-input {
+        padding: 12px 14px !important;
+        font-size: 16px !important; /* prevents iOS zoom on focus */
+    }
+
+    .chat-header h2 {
+        font-size: 1.1rem !important;
+    }
+
+    .button-demo-list {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+    }
+
+    .interactive-btn {
+        min-height: 64px;
+        padding: 10px 6px !important;
+    }
+
+    .interactive-btn svg {
+        width: 20px !important;
+        height: 20px !important;
+    }
+
+    .toast-card,
+    .notification-container {
+        left: 8px !important;
+        right: 8px !important;
+        max-width: none !important;
+    }
+}
+
+/* Very small phones */
+@media (max-width: 400px) {
+    .page-container,
+    .page-wrap {
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+    }
+
+    .brand-logo,
+    .welcome-header h1 {
+        font-size: 1.25rem !important;
+    }
+
+    .drawer-dropdown {
+        left: 4px !important;
+        right: 4px !important;
+        width: auto !important;
+    }
+
+    .tab-btn {
+        padding: 7px 10px !important;
+        font-size: 0.8rem !important;
+    }
+
+    table {
+        min-width: 360px;
+    }
+
+    .button-demo-list {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Short landscape phones */
+@media (max-height: 500px) and (orientation: landscape) {
+    .chat-container {
+        height: calc(100dvh - 72px) !important;
+        max-height: none;
+    }
+
+    .sidebar {
+        max-height: 120px;
+    }
+
+    .auth-container {
+        margin: 8px 0 !important;
+    }
+
+    .profile-modal {
+        max-height: calc(100dvh - 16px) !important;
+    }
+}
+
+/* Safe areas for notched devices */
+@supports (padding: max(0px)) {
+    .top-navbar {
+        padding-left: max(12px, env(safe-area-inset-left));
+        padding-right: max(12px, env(safe-area-inset-right));
+    }
+
+    .page-container,
+    .page-wrap,
+    .dashboard-container {
+        padding-bottom: max(24px, env(safe-area-inset-bottom));
+    }
+
+    .chat-input,
+    .chat-input-area {
+        padding-bottom: max(16px, env(safe-area-inset-bottom)) !important;
+    }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
