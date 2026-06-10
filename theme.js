@@ -339,4 +339,166 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    function initUniversalSearchNav() {
+        const navbar = document.querySelector('.top-navbar');
+        if (!navbar || navbar.querySelector('.universal-search-container')) return;
+
+        const navRight = navbar.querySelector('.navbar-right');
+        const navLeft = navbar.querySelector('.navbar-left');
+        if (!navRight || !navLeft) return;
+
+        const container = document.createElement('div');
+        container.className = 'universal-search-container';
+        container.innerHTML = `
+            <div class="universal-search-field">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="universalSearchInput" class="universal-search-input" placeholder="Search messages, materials, routine, features..." autocomplete="off">
+                <button type="button" id="searchFilterToggle" class="search-filter-toggle" aria-label="Open search filters" aria-expanded="false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 6h16"></path>
+                        <path d="M4 12h10"></path>
+                        <path d="M4 18h16"></path>
+                    </svg>
+                </button>
+                <div id="searchFilterPanel" class="search-filter-panel">
+                    <div class="search-filter-title">Search Type</div>
+                    <div class="search-chip-list">
+                        <button type="button" class="search-chip active" data-filter="features">App Features</button>
+                        <button type="button" class="search-chip" data-filter="messages">Messages</button>
+                        <button type="button" class="search-chip" data-filter="materials">Course Materials</button>
+                        <button type="button" class="search-chip" data-filter="routine">Routine</button>
+                    </div>
+                </div>
+                <div id="universalSearchDropdown" class="search-dropdown"></div>
+            </div>
+        `;
+
+        navbar.insertBefore(container, navRight);
+
+        const searchInput = container.querySelector('#universalSearchInput');
+        const searchDropdown = container.querySelector('#universalSearchDropdown');
+        const searchFilterToggle = container.querySelector('#searchFilterToggle');
+        const searchFilterPanel = container.querySelector('#searchFilterPanel');
+        const searchFilterChips = container.querySelectorAll('.search-chip');
+        let searchTimeout = null;
+        let selectedSearchFilter = 'features';
+
+        const searchFilterLabels = {
+            messages: 'Messages',
+            materials: 'Course Materials',
+            routine: 'Routine',
+            features: 'App Features'
+        };
+
+        const getSearchIcon = (type) => {
+            if (type === 'Feature') {
+                return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>';
+            }
+            if (type === 'Message') {
+                return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+            }
+            if (type === 'Course Material') {
+                return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+            }
+            if (type === 'Routine') {
+                return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+            }
+            return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/></svg>';
+        };
+
+        const renderSearchResults = (data) => {
+            if (!searchDropdown || !data || data.length === 0) {
+                if (searchDropdown) {
+                    searchDropdown.innerHTML = '<div class="search-loading">No results found.</div>';
+                }
+                return;
+            }
+
+            searchDropdown.innerHTML = '';
+            data.forEach(item => {
+                const a = document.createElement('a');
+                a.href = item.url;
+                a.className = 'search-result-item';
+                a.innerHTML = `
+                    <div class="search-result-icon">${getSearchIcon(item.type)}</div>
+                    <div class="search-result-text">
+                        <span class="search-result-title">${item.title}</span>
+                        <span class="search-result-type">${item.type}</span>
+                        ${item.meta ? `<span class="search-result-meta">${item.meta}</span>` : ''}
+                    </div>
+                `;
+                searchDropdown.appendChild(a);
+            });
+        };
+
+        const runSearch = () => {
+            const query = searchInput.value.trim();
+            clearTimeout(searchTimeout);
+
+            if (query.length === 0) {
+                searchDropdown.classList.remove('active');
+                searchDropdown.innerHTML = '';
+                return;
+            }
+
+            searchDropdown.classList.add('active');
+            searchDropdown.innerHTML = '<div class="search-loading">Searching...</div>';
+
+            searchTimeout = setTimeout(() => {
+                fetch(`universal_search.php?q=${encodeURIComponent(query)}&filter=${encodeURIComponent(selectedSearchFilter)}`)
+                    .then(response => response.json())
+                    .then(renderSearchResults)
+                    .catch(() => {
+                        searchDropdown.innerHTML = '<div class="search-loading">Error fetching results.</div>';
+                    });
+            }, 200);
+        };
+
+        searchInput.addEventListener('input', runSearch);
+        searchInput.addEventListener('focus', function() {
+            if (this.value.trim().length > 0 && searchDropdown.innerHTML !== '') {
+                searchDropdown.classList.add('active');
+            }
+        });
+
+        if (searchFilterToggle && searchFilterPanel) {
+            searchFilterToggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const isOpen = searchFilterPanel.classList.toggle('active');
+                searchFilterToggle.classList.toggle('active', isOpen);
+                searchFilterToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+        }
+
+        searchFilterChips.forEach(chip => {
+            chip.addEventListener('click', function(e) {
+                e.stopPropagation();
+                selectedSearchFilter = this.dataset.filter;
+                searchFilterToggle?.setAttribute('aria-label', `Search type: ${searchFilterLabels[selectedSearchFilter] || 'App Features'}`);
+                searchFilterChips.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                searchFilterPanel.classList.remove('active');
+                searchFilterToggle.classList.remove('active');
+                searchFilterToggle.setAttribute('aria-expanded', 'false');
+                if (searchInput.value.trim().length > 0) {
+                    runSearch();
+                }
+            });
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!container.contains(e.target)) {
+                searchDropdown.classList.remove('active');
+                searchFilterPanel.classList.remove('active');
+                searchFilterToggle?.classList.remove('active');
+                searchFilterToggle?.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
+
+    initUniversalSearchNav();
 });
