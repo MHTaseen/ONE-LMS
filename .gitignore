@@ -1,8 +1,22 @@
+# --- Secrets (never commit these) ---
 config.production.php
-deploy/*.sql
+
+# --- Database dumps (contain real user data) ---
+bracu_thesis_full.sql
+*.sql.bak
+
+# --- Upload content (user files, not code) ---
 uploads/**/*
 !uploads/**/.gitkeep
 !uploads/**/index.html
+.uploads/
+
+# --- Logs ---
 *.log
+
+# --- OS & Editor junk ---
 .DS_Store
 Thumbs.db
+.vscode/
+.cursor/
+*.ps1.bak

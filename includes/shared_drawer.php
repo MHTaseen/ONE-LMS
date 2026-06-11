@@ -1,5 +1,11 @@
 <?php
 $drawerRole = $_SESSION['role'] ?? '';
+$drawerAdvisingOpen = false;
+if (isset($pdo) && $drawerRole === 'teacher') {
+    $stmt_adv = $pdo->query("SELECT setting_value FROM settings WHERE setting_key = 'advising_open'");
+    $advisingOpenRow = $stmt_adv ? $stmt_adv->fetch() : null;
+    $drawerAdvisingOpen = $advisingOpenRow ? ($advisingOpenRow['setting_value'] === '1') : false;
+}
 ?>
 <style>
     .shared-drawer-backdrop {
@@ -464,6 +470,20 @@ $drawerRole = $_SESSION['role'] ?? '';
                 </svg>
                 Deploy Quiz
             </a>
+            <div class="shared-drawer-item shared-preference-item" role="menuitem">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-primary); width: 18px; height: 18px;">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <span>Open Advising Portal</span>
+                </div>
+                <label class="switch-toggle">
+                    <input type="checkbox" id="advisingToggleBtnShared" <?= $drawerAdvisingOpen ? 'checked' : '' ?>>
+                    <span class="switch-slider"></span>
+                </label>
+            </div>
             <a href="app_support.php" class="shared-drawer-item" role="menuitem">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -638,6 +658,31 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isMobileDrawer && isMobileDrawer.addEventListener) {
         isMobileDrawer.addEventListener('change', () => {
             if (!isMobileDrawer.matches && drawerBackdrop) drawerBackdrop.classList.remove('visible');
+        });
+    }
+
+    // Advising Portal Toggle for Shared Drawer
+    const advisingToggleBtnShared = document.getElementById('advisingToggleBtnShared');
+    if (advisingToggleBtnShared) {
+        advisingToggleBtnShared.addEventListener('change', function() {
+            const isOpen = this.checked;
+            fetch('toggle_advising.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ advising_open: isOpen })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(!data.success) {
+                    alert(data.message || 'Failed to toggle advising state.');
+                    this.checked = !isOpen; // Revert
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred.');
+                this.checked = !isOpen; // Revert
+            });
         });
     }
 });

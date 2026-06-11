@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // advising.php – Student access only
 session_start();
 if (!isset($_SESSION['user_id'])) {
@@ -344,10 +344,57 @@ try {
             .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
             table { min-width: 550px; font-size: 0.85rem; }
             th, td { padding: 8px 10px; }
-        }</style>
+        }
+
+        /* Modal Overlay Styles */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(7, 11, 20, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modal-overlay.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .section-modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+            max-width: 400px;
+            width: calc(100% - 32px);
+            margin: 16px;
+            transform: scale(0.95);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .modal-overlay.visible .section-modal {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            font-family: 'Space Grotesque', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+    </style>
     <link rel="stylesheet" href="responsive.css">
 </head>
 <body>
+    <!-- DEBUG: advisingOpen = <?= var_export($advisingOpen, true) ?> -->
     <div class="ambient-glow-1"></div>
     <div class="ambient-glow-2"></div>
 

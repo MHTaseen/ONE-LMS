@@ -1,9 +1,16 @@
 <?php
-// Copy this file to config.production.php on your live server and fill in values
-// from your hosting panel (InfinityFree → MySQL Databases).
+// ============================================================
+// config.production.php.example
+// ============================================================
+// INSTRUCTIONS:
+//   1. Copy this file to: config.production.php
+//   2. Fill in your hosting panel's MySQL credentials below.
+//   3. Upload config.production.php to your server root (htdocs/).
+//   4. NEVER commit config.production.php to Git (it's in .gitignore).
+// ============================================================
 
-define('DB_HOST', 'sql123.infinityfree.com');  // your MySQL hostname
-define('DB_PORT', '3306');                      // usually 3306 on free hosts
-define('DB_USER', 'if0_XXXXXXX');               // MySQL username
-define('DB_PASS', 'your_mysql_password');       // MySQL password
-define('DB_NAME', 'if0_XXXXXXX_bracu');         // MySQL database name
+define('DB_HOST', 'sqlXXX.infinityfree.com');  // MySQL hostname from your hosting panel
+define('DB_PORT', '3306');                       // Usually 3306 (standard MySQL port)
+define('DB_USER', 'if0_XXXXXXXX');               // MySQL username from hosting panel
+define('DB_PASS', 'your_mysql_password_here');   // MySQL password you set
+define('DB_NAME', 'if0_XXXXXXXX_bracu');         // MySQL database name from hosting panel

@@ -1,5 +1,0 @@
-RewriteEngine On
-
-# If the request is not already targeting /htdocs/, forward it there
-RewriteCond %{REQUEST_URI} !^/thesis-prototype/htdocs/
-RewriteRule ^(.*)$ htdocs/$1 [L]
