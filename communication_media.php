@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // communication_media.php - Central Communication Media for Courses
 session_start();
 if (!isset($_SESSION['user_id'])) {
@@ -222,8 +222,29 @@ if ($active_sec) {
     <title>Central Communication Media</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        .top-navbar { position: fixed; top: 0; left: 0; right: 0; height: auto; min-height: 64px; z-index: 900; display: flex; align-items: center; padding: 10px 28px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); }
-        .navbar-brand { font-family: 'Space Grotesque', sans-serif; font-size: 1.15rem; font-weight: 700; background: var(--gradient-accent); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        /* ── Navbar ── */
+        .top-navbar {
+            position: fixed; top: 0; left: 0; right: 0; height: auto; min-height: 64px;
+            z-index: 900; display: flex; align-items: center; padding: 10px 28px;
+            background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 2px 20px rgba(0,0,0,.25);
+        }
+        .navbar-left { display: flex; align-items: center; gap: 14px; }
+        .navbar-brand {
+            font-family: 'Space Grotesque', sans-serif; font-size: 1.15rem;
+            font-weight: 700; background: var(--gradient-accent);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            letter-spacing: -.5px; user-select: none;
+        }
+        .nav-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: var(--gradient-accent); display: flex;
+            justify-content: center; align-items: center; color: #fff;
+            font-weight: 700; font-size: .95rem; box-shadow: var(--glow-shadow);
+            cursor: default; font-family: 'Space Grotesque', sans-serif;
+        }
+        .navbar-right { display: flex; align-items: center; gap: 12px; }
         .nav-btn-back { display: inline-flex; align-items: center; gap: 8px; color: var(--text-secondary); text-decoration: none; font-weight: 500; transition: 0.2s; }
         .nav-btn-back:hover { color: var(--accent-primary); }
 
@@ -231,6 +252,11 @@ if ($active_sec) {
         
         .sidebar { width: 320px; background: var(--bg-secondary); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; overflow-y: auto; }
         .sidebar-header { padding: 24px; border-bottom: 1px solid var(--border-color); }
+        @media (min-width: 769px) {
+            .sidebar-header {
+                padding-top: 76px;
+            }
+        }
         .sidebar-header h2 { font-size: 1.2rem; color: var(--text-primary); }
         
         .sec-list { display: flex; flex-direction: column; }
@@ -315,7 +341,7 @@ if ($active_sec) {
             table { min-width: 550px; font-size: 0.85rem; }
             th, td { padding: 8px 10px; }
         }</style>
-    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="responsive.css?v=2">
 </head>
 <body>
 

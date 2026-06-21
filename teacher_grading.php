@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // teacher_grading.php - Teacher UI for grading assignments & viewing quizzes
 session_start();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'teacher') {
@@ -14,6 +14,12 @@ if (!$teacher_db_id) {
     $stmt->execute([$_SESSION['user_id']]);
     $row = $stmt->fetch();
     $teacher_db_id = $row['id'] ?? 0;
+}
+
+$activeSemId = isset($activeSemester['id']) ? intval($activeSemester['id']) : 0;
+$viewSemId = isset($_GET['view_semester_id']) ? intval($_GET['view_semester_id']) : $activeSemId;
+if (!$viewSemId) {
+    $viewSemId = $activeSemId;
 }
 
 // Handle grading submission (POST)
@@ -145,14 +151,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch teacher's sections
+// Fetch teacher's sections for the selected semester
 $stmt = $pdo->prepare("
     SELECT cs.id as section_id, cs.section_no, c.code, c.title
     FROM course_sections cs
     JOIN courses c ON cs.course_id = c.id
-    WHERE c.teacher_id = ?
+    WHERE (c.teacher_id = ? OR cs.teacher_id = ?) AND cs.semester_id = ?
 ");
-$stmt->execute([$teacher_db_id]);
+$stmt->execute([$teacher_db_id, $teacher_db_id, $viewSemId]);
 $sections = $stmt->fetchAll();
 
 // Determine active section (preserve after POST)
@@ -335,9 +341,23 @@ if ($active_section_data) {
 
 
 <div class="page-container">
-    <div class="header">
-        <h1>Submit Current Score</h1>
-        <p>Review and grade student assignments and quizzes.</p>
+    <div class="header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom: 28px;">
+        <div>
+            <h1 style="margin-bottom: 4px;">Submit Current Score</h1>
+            <p style="margin-bottom: 0; color: var(--text-secondary);">Review and grade student assignments and quizzes.</p>
+        </div>
+        <!-- Semester Filter Dropdown -->
+        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 6px 12px; display: flex; align-items: center; gap: 8px; box-shadow: var(--card-glow); backdrop-filter: blur(10px);">
+            <span style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 700;">Semester:</span>
+            <select id="globalSemSelect" style="border: none; background: transparent; color: var(--text-primary); font-weight: 700; outline: none; cursor: pointer; font-size: 0.9rem;" onchange="updateSemesterFilter(this.value)">
+                <?php
+                $allSemsForFilter = getAllSemesters($pdo);
+                foreach ($allSemsForFilter as $sem):
+                ?>
+                    <option value="<?= $sem['id'] ?>" <?= $sem['id'] == $viewSemId ? 'selected' : '' ?> style="background: var(--bg-primary); color: var(--text-primary);"><?= htmlspecialchars($sem['label']) ?> <?= $sem['is_active'] ? '(Active)' : '' ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
     </div>
 
     <?php if (isset($successMsg)): ?>
@@ -776,6 +796,13 @@ function switchTab(tabId) {
     
     document.getElementById('tab-' + tabId).classList.add('active');
     sessionStorage.setItem("activeScoreTab", tabId);
+}
+
+function updateSemesterFilter(id) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('view_semester_id', id);
+    url.searchParams.delete('section_id'); // clear active section id as it belongs to the other semester
+    window.location.href = url.toString();
 }
 </script>
 <?php include 'includes/global_search_js.php'; ?>

@@ -306,6 +306,16 @@ if (isset($pdo) && $drawerRole === 'teacher') {
                 </svg>
                 Grade Sheet
             </a>
+            <?php if ($drawerRole === 'student'): ?>
+            <a href="student_payment.php" class="shared-drawer-item" role="menuitem">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="4" width="20" height="16" rx="2" ry="2"/>
+                    <line x1="12" y1="4" x2="12" y2="20"/>
+                    <line x1="2" y1="10" x2="22" y2="10"/>
+                </svg>
+                Payment
+            </a>
+            <?php endif; ?>
             <a href="routine.php" class="shared-drawer-item" role="menuitem">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -380,6 +390,19 @@ if (isset($pdo) && $drawerRole === 'teacher') {
                 </svg>
                 Attendance
             </a>
+            <?php if ($drawerRole === 'student'): ?>
+            <div class="shared-drawer-divider"></div>
+            <span class="shared-drawer-section-label">Analytics</span>
+            <a href="student_study_analysis.php" class="shared-drawer-item" role="menuitem" style="background: rgba(168,85,247,0.06); border-radius:10px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-primary);">
+                    <line x1="18" y1="20" x2="18" y2="10"/>
+                    <line x1="12" y1="20" x2="12" y2="4"/>
+                    <line x1="6" y1="20" x2="6" y2="14"/>
+                    <path d="M2 20h20"/>
+                </svg>
+                My Study Analysis
+            </a>
+            <?php endif; ?>
             <a href="app_support.php" class="shared-drawer-item" role="menuitem">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -484,6 +507,17 @@ if (isset($pdo) && $drawerRole === 'teacher') {
                     <span class="switch-slider"></span>
                 </label>
             </div>
+            <div class="shared-drawer-divider"></div>
+            <span class="shared-drawer-section-label">Analytics</span>
+            <a href="teacher_student_analysis.php" class="shared-drawer-item" role="menuitem" style="background: rgba(6,182,212,0.06); border-radius:10px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-secondary);">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    <line x1="11" y1="8" x2="11" y2="14"/>
+                    <line x1="8" y1="11" x2="14" y2="11"/>
+                </svg>
+                Analyze Students
+            </a>
             <a href="app_support.php" class="shared-drawer-item" role="menuitem">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>

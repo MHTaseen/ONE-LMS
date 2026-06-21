@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // student_scores.php - Student UI for viewing current scores
 session_start();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
@@ -15,7 +15,8 @@ if (!$student_db_id) {
     $student_db_id = $row['id'] ?? 0;
 }
 
-// Fetch enrolled courses and static scores
+// Fetch enrolled courses and static scores for active semester
+$activeSemId = isset($activeSemester['id']) ? intval($activeSemester['id']) : 0;
 $stmt = $pdo->prepare("
     SELECT cs.id as section_id, cs.section_no, c.code, c.title, t.full_name as teacher_name,
            e.score_attendance, e.score_mid, e.score_final, e.score_lab
@@ -23,9 +24,9 @@ $stmt = $pdo->prepare("
     JOIN course_sections cs ON e.section_id = cs.id
     JOIN courses c ON cs.course_id = c.id
     JOIN users t ON c.teacher_id = t.id
-    WHERE e.student_id = ?
+    WHERE e.student_id = ? AND e.semester_id = ?
 ");
-$stmt->execute([$student_db_id]);
+$stmt->execute([$student_db_id, $activeSemId]);
 $courses = $stmt->fetchAll();
 
 // Active course logic

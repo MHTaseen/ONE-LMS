@@ -719,7 +719,7 @@ input:checked + .switch-slider:before {
 }
 .universal-search-input {
     width: 100%;
-    padding: 10px 16px 10px 40px;
+    padding: 10px 36px 10px 40px;
     border-radius: 20px;
     border: 1px solid var(--border-color);
     background: var(--bg-secondary);
@@ -747,38 +747,50 @@ input:checked + .switch-slider:before {
     right: 10px;
     top: 50%;
     transform: translateY(-50%);
-    width: 34px;
-    height: 34px;
+    width: 22px;
+    height: 22px;
     padding: 0;
     border-radius: 50%;
-    border: 1px solid var(--border-color);
-    background: var(--input-bg);
+    border: none;
+    background: transparent;
     color: var(--text-secondary);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.2s;
+    transition: background 0.2s, color 0.2s, transform 0.2s;
 }
 .search-filter-toggle:hover,
 .search-filter-toggle.active {
-    background: rgba(168, 85, 247, 0.08);
+    background: rgba(168, 85, 247, 0.15);
     color: var(--accent-primary);
-    border-color: rgba(168, 85, 247, 0.18);
+}
+.search-filter-toggle svg {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
 }
 .search-filter-toggle.active svg {
     transform: rotate(180deg);
 }
 .search-filter-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 100%;
     display: none;
     padding: 12px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
+    background: #0d1629;
+    border: 1px solid rgba(168, 85, 247, 0.25);
     border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.12);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 15px rgba(168, 85, 247, 0.15);
     z-index: 1001;
+}
+.light-theme .search-filter-panel {
+    background: #ffffff;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), 0 0 15px rgba(99, 102, 241, 0.08);
 }
 .search-filter-panel.active {
     display: block;
@@ -819,16 +831,19 @@ input:checked + .switch-slider:before {
     top: calc(100% + 8px);
     left: 0;
     width: 100%;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
+    background: #0d1629;
+    border: 1px solid rgba(168, 85, 247, 0.25);
     border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.16);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 15px rgba(168, 85, 247, 0.15);
     max-height: 360px;
     overflow-y: auto;
     z-index: 1000;
     display: none;
+}
+.light-theme .search-dropdown {
+    background: #ffffff;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), 0 0 15px rgba(99, 102, 241, 0.08);
 }
 .search-dropdown.active {
     display: block;
@@ -995,7 +1010,7 @@ input:checked + .switch-slider:before {
     }
     .universal-search-input {
         font-size: 0.85rem;
-        padding: 8px 12px 8px 34px;
+        padding: 8px 32px 8px 34px;
     }
 
     /* Notification dropdown full width on mobile */
@@ -1260,3 +1275,13 @@ input:checked + .switch-slider:before {
 
 /* Override theme-switch-container positioning - now lives inside nav */
 .theme-switch-container { position: static; }
+
+/* Prevent main page content from overlapping with the floating Menu button on desktop viewports */
+@media (min-width: 769px) {
+    .page-wrap,
+    .page-container,
+    .page-wrapper,
+    .page-content {
+        padding-top: 140px !important;
+    }
+}

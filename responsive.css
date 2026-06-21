@@ -266,7 +266,7 @@ table {
 /* Tablets */
 @media (max-width: 992px) {
     .page-container {
-        padding: 88px 20px 32px !important;
+        padding: 140px 20px 32px !important;
     }
 
     .page-wrap,
@@ -275,7 +275,7 @@ table {
     .inner-container,
     .content-area,
     .page-content-inner {
-        padding: 88px 20px 40px !important;
+        padding: 140px 20px 40px !important;
     }
 
     .dashboard-container {
@@ -367,7 +367,7 @@ table {
 
     .universal-search-input {
         font-size: 0.85rem !important;
-        padding: 8px 10px 8px 32px !important;
+        padding: 8px 32px 8px 32px !important;
     }
 
     .notif-dropdown {

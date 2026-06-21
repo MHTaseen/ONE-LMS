@@ -9,7 +9,7 @@ if (file_exists($productionConfig)) {
 } else {
     // Local XAMPP defaults
     define('DB_HOST', 'localhost');
-    define('DB_PORT', '3307');
+    define('DB_PORT', '3306');
     define('DB_USER', 'root');
     define('DB_PASS', '');
     define('DB_NAME', 'bracu_thesis');
@@ -41,16 +41,20 @@ try {
 
     $pubCol = $pdo->query("SHOW COLUMNS FROM enrollments LIKE 'score_published'")->fetchAll();
     if (empty($pubCol)) {
-        $pdo->exec("ALTER TABLE enrollments ADD COLUMN score_published TINYINT(1) NOT NULL DEFAULT 0 AFTER score_total");
+        $pdo->exec("ALTER TABLE enrollments ADD COLUMN score_published TINYINT(1) NOT NULL DEFAULT 0");
     }
 
-    $commFileCol = $pdo->query("SHOW COLUMNS FROM course_communications LIKE 'file_path'")->fetchAll();
-    if (empty($commFileCol)) {
-        $pdo->exec("ALTER TABLE course_communications
-            MODIFY message TEXT NULL,
-            ADD COLUMN file_path VARCHAR(255) DEFAULT NULL AFTER message,
-            ADD COLUMN file_name VARCHAR(255) DEFAULT NULL AFTER file_path,
-            ADD COLUMN file_mime VARCHAR(100) DEFAULT NULL AFTER file_name");
+    try {
+        $commFileCol = $pdo->query("SHOW COLUMNS FROM course_communications LIKE 'file_path'")->fetchAll();
+        if (empty($commFileCol)) {
+            $pdo->exec("ALTER TABLE course_communications
+                MODIFY message TEXT NULL,
+                ADD COLUMN file_path VARCHAR(255) DEFAULT NULL AFTER message,
+                ADD COLUMN file_name VARCHAR(255) DEFAULT NULL AFTER file_path,
+                ADD COLUMN file_mime VARCHAR(100) DEFAULT NULL AFTER file_name");
+        }
+    } catch (PDOException $e) {
+        // Table does not exist yet; skip
     }
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS developer_messages (
@@ -65,5 +69,28 @@ try {
 
 } catch (PDOException $e) {
     die("Database connection failed: " . $e->getMessage());
+}
+require_once __DIR__ . '/semester_helper.php';
+
+// Check if student is frozen
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+if (isset($_SESSION['role']) && $_SESSION['role'] === 'student' && isset($_SESSION['user_pk'])) {
+    try {
+        $stmtF = $pdo->prepare("SELECT is_frozen FROM users WHERE id = ?");
+        $stmtF->execute([$_SESSION['user_pk']]);
+        $isFrozen = $stmtF->fetchColumn();
+        if ($isFrozen) {
+            $currentPage = basename($_SERVER['SCRIPT_NAME']);
+            $allowedPages = ['student_payment.php', 'logout.php', 'app_support.php'];
+            if (!in_array($currentPage, $allowedPages)) {
+                header('Location: student_payment.php');
+                exit();
+            }
+        }
+    } catch (PDOException $e) {
+        // Silently ignore DB errors during config load
+    }
 }
 ?>

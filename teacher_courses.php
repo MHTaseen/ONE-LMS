@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // teacher_courses.php – Teacher access only
 session_start();
 
@@ -14,6 +14,30 @@ if ($_SESSION['role'] !== 'teacher') {
 
 require_once 'config.php';
 
+// ── Auto-migration: ensure teacher_id and lab_room_no columns exist ──────────
+try {
+    $colExists = $pdo->query(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME   = 'course_sections'
+           AND COLUMN_NAME  = 'teacher_id'"
+    )->fetchColumn();
+    if (!$colExists) {
+        $pdo->exec("ALTER TABLE course_sections ADD COLUMN teacher_id INT NULL DEFAULT NULL AFTER course_id");
+    }
+    $labRoomColExists = $pdo->query(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME   = 'course_sections'
+           AND COLUMN_NAME  = 'lab_room_no'"
+    )->fetchColumn();
+    if (!$labRoomColExists) {
+        $pdo->exec("ALTER TABLE course_sections ADD COLUMN lab_room_no VARCHAR(20) NULL DEFAULT NULL");
+    }
+} catch (PDOException $e) {
+    error_log('Migration warning: ' . $e->getMessage());
+}
+
 $fullName = $_SESSION['full_name'];
 $initials = '';
 $nameParts = explode(' ', trim($fullName));
@@ -26,6 +50,29 @@ if (count($nameParts) > 1) {
 $errorMsg = '';
 $successMsg = '';
 
+$activeSemId = isset($activeSemester['id']) ? intval($activeSemester['id']) : 0;
+$viewSemId = isset($_GET['view_semester_id']) ? intval($_GET['view_semester_id']) : $activeSemId;
+if (!$viewSemId) {
+    $viewSemId = $activeSemId;
+}
+
+// Fetch sections for this teacher in the selected semester
+$mySections = [];
+try {
+    $stmtMy = $pdo->prepare("
+        SELECT cs.*, c.title as course_title, c.code as course_code,
+               (SELECT COUNT(*) FROM enrollments WHERE section_id = cs.id) as enrolled
+        FROM course_sections cs
+        JOIN courses c ON cs.course_id = c.id
+        WHERE cs.teacher_id = ? AND cs.semester_id = ?
+        ORDER BY c.code ASC, cs.section_no ASC
+    ");
+    $stmtMy->execute([$_SESSION['user_pk'], $viewSemId]);
+    $mySections = $stmtMy->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    // ignore
+}
+
 // Handle section creation
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'create_section') {
     $course_id = intval($_POST['course_id']);
@@ -37,6 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $theory_time_slot = trim($_POST['theory_time_slot'] ?? '');
     $lab_day = trim($_POST['lab_day'] ?? '');
     $lab_time_slot = trim($_POST['lab_time_slot'] ?? '');
+    $lab_room_no = trim($_POST['lab_room_no'] ?? '');
 
     // Validation
     if ($seats > 40) {
@@ -56,15 +104,83 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $errorMsg = "Please fill out all lab schedule fields since this course has lab marks.";
         } else {
             try {
-                // Guard: check if this (course_id, section_no) already exists
-                $dupCheck = $pdo->prepare("SELECT id FROM course_sections WHERE course_id = ? AND section_no = ?");
-                $dupCheck->execute([$course_id, $section_no]);
+                // Guard: check if this (course_id, section_no) already exists in active semester
+                $dupCheck = $pdo->prepare("SELECT id FROM course_sections WHERE course_id = ? AND section_no = ? AND semester_id = ?");
+                $dupCheck->execute([$course_id, $section_no, $activeSemId]);
                 if ($dupCheck->fetch()) {
                     $errorMsg = "Section $section_no already exists for this course. Each section number must be unique within a course.";
                 } else {
-                    $stmt = $pdo->prepare("INSERT INTO course_sections (course_id, teacher_id, section_no, room_no, seats, theory_day_1, theory_day_2, theory_time_slot, lab_day, lab_time_slot) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$course_id, $_SESSION['user_pk'], $section_no, $room_no, $seats, $theory_day_1, $theory_day_2, $theory_time_slot, $lab_day, $lab_time_slot]);
-                    $successMsg = "Section $section_no created successfully!";
+
+                    // ── ROOM BOOKING CLASH ─────────────────────────────────────
+                    // Check if same room is already booked on any of the theory days at the same time in active semester
+                    $roomClashStmt = $pdo->prepare("
+                        SELECT c.code, cs.section_no
+                        FROM course_sections cs
+                        JOIN courses c ON cs.course_id = c.id
+                        WHERE cs.semester_id = ?
+                          AND cs.room_no = ?
+                          AND cs.theory_time_slot = ?
+                          AND (cs.theory_day_1 IN (?,?) OR cs.theory_day_2 IN (?,?))
+                        LIMIT 1
+                    ");
+                    $roomClashStmt->execute([
+                        $activeSemId,
+                        $room_no, $theory_time_slot,
+                        $theory_day_1, $theory_day_2,
+                        $theory_day_1, $theory_day_2
+                    ]);
+                    $roomClash = $roomClashStmt->fetch(PDO::FETCH_ASSOC);
+
+                    // Lab room clash (if lab is required)
+                    $labRoomClash = null;
+                    if ($requires_lab && !empty($lab_day) && !empty($lab_time_slot) && !empty($lab_room_no)) {
+                        $labRoomClashStmt = $pdo->prepare("
+                            SELECT c.code, cs.section_no
+                            FROM course_sections cs
+                            JOIN courses c ON cs.course_id = c.id
+                            WHERE cs.semester_id = ?
+                              AND cs.lab_room_no = ?
+                              AND cs.lab_time_slot = ?
+                              AND cs.lab_day = ?
+                            LIMIT 1
+                        ");
+                        $labRoomClashStmt->execute([$activeSemId, $lab_room_no, $lab_time_slot, $lab_day]);
+                        $labRoomClash = $labRoomClashStmt->fetch(PDO::FETCH_ASSOC);
+                    }
+
+                    // ── TIME SLOT CLASH (same days + same time for THIS teacher in active semester) ──────
+                    $timeClashStmt = $pdo->prepare("
+                        SELECT c.code, cs.section_no
+                        FROM course_sections cs
+                        JOIN courses c ON cs.course_id = c.id
+                        WHERE cs.semester_id = ?
+                          AND cs.teacher_id = ?
+                          AND cs.theory_time_slot = ?
+                          AND (
+                            (cs.theory_day_1 IN (?,?) OR cs.theory_day_2 IN (?,?))
+                          )
+                        LIMIT 1
+                    ");
+                    $timeClashStmt->execute([
+                        $activeSemId,
+                        $_SESSION['user_pk'],
+                        $theory_time_slot,
+                        $theory_day_1, $theory_day_2,
+                        $theory_day_1, $theory_day_2
+                    ]);
+                    $timeClash = $timeClashStmt->fetch(PDO::FETCH_ASSOC);
+
+                    if ($roomClash) {
+                        $errorMsg = "🚫 Room Conflict: Room <strong>{$room_no}</strong> is already booked at <strong>{$theory_time_slot}</strong> on those days by <strong>{$roomClash['code']}</strong> Section {$roomClash['section_no']}. Please choose a different room.";
+                    } elseif ($labRoomClash) {
+                        $errorMsg = "🚫 Lab Room Conflict: Room <strong>{$lab_room_no}</strong> is already booked for a lab at <strong>{$lab_time_slot}</strong> on <strong>{$lab_day}</strong> by <strong>{$labRoomClash['code']}</strong> Section {$labRoomClash['section_no']}. Please choose a different lab room or lab time.";
+                    } elseif ($timeClash) {
+                        $errorMsg = "⚠️ Schedule Conflict: The time slot <strong>{$theory_time_slot}</strong> on those days is already used by you for <strong>{$timeClash['code']}</strong> Section {$timeClash['section_no']}. This may cause teacher routine clashes — please choose a different day or time.";
+                    } else {
+                        $stmt = $pdo->prepare("INSERT INTO course_sections (course_id, teacher_id, section_no, room_no, seats, theory_day_1, theory_day_2, theory_time_slot, lab_day, lab_time_slot, lab_room_no, semester_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$course_id, $_SESSION['user_pk'], $section_no, $room_no, $seats, $theory_day_1, $theory_day_2, $theory_time_slot, $lab_day, $lab_time_slot, $lab_room_no, $activeSemId]);
+                        $successMsg = "Section $section_no created successfully!";
+                    }
                 }
             } catch (PDOException $e) {
                 // Catch UNIQUE constraint violation as a friendly message
@@ -264,13 +380,29 @@ $days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Saturday"];
 
 
     <div class="page-wrap">
-        <h1 class="page-heading">Database Courses</h1>
-        <p class="page-subheading">View all courses and create sections for enrollment.</p>
+        <div class="page-hdr" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom: 28px;">
+            <div>
+                <h1 class="page-heading" style="margin-bottom: 4px;">Database Courses</h1>
+                <p class="page-subheading" style="margin-bottom: 0;">View all courses and create sections for enrollment.</p>
+            </div>
+            <!-- Semester Filter Dropdown -->
+            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 6px 12px; display: flex; align-items: center; gap: 8px; box-shadow: var(--card-glow); backdrop-filter: blur(10px);">
+                <span style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 700;">Semester:</span>
+                <select id="globalSemSelect" style="border: none; background: transparent; color: var(--text-primary); font-weight: 700; outline: none; cursor: pointer; font-size: 0.9rem;" onchange="updateSemesterFilter(this.value)">
+                    <?php
+                    $allSemsForFilter = getAllSemesters($pdo);
+                    foreach ($allSemsForFilter as $sem):
+                    ?>
+                        <option value="<?= $sem['id'] ?>" <?= $sem['id'] == $viewSemId ? 'selected' : '' ?> style="background: var(--bg-primary); color: var(--text-primary);"><?= htmlspecialchars($sem['label']) ?> <?= $sem['is_active'] ? '(Active)' : '' ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </div>
 
         <?php if (!empty($errorMsg)): ?>
             <div class="alert-box alert-error">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                <?= htmlspecialchars($errorMsg) ?>
+                <?= $errorMsg ?>
             </div>
         <?php endif; ?>
 
@@ -281,6 +413,53 @@ $days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Saturday"];
             </div>
         <?php endif; ?>
 
+        <!-- Your Scheduled Sections Card -->
+        <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 20px; padding: 25px; box-shadow: var(--card-glow); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); margin-bottom: 30px;">
+            <div class="card-title" style="font-family: 'Space Grotesque', sans-serif; font-size: 1.25rem; font-weight: 700; margin-bottom: 18px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                <span>📋</span> Your Scheduled Sections (<?= count($mySections) ?>)
+            </div>
+            
+            <?php if (empty($mySections)): ?>
+                <div class="alert-box alert-success" style="background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.25); color: var(--accent-primary); margin: 0; display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-radius: 14px; font-size: 0.88rem; font-weight: 600;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    You have not scheduled any sections for <?= htmlspecialchars(getSemesterLabel($pdo, $viewSemId)) ?>.
+                </div>
+            <?php else: ?>
+                <div class="table-responsive">
+                    <table style="width: 100%; border-collapse: collapse; min-width: 600px; text-align: left;">
+                        <thead>
+                            <tr style="background: rgba(168, 85, 247, 0.05);">
+                                <th style="padding: 13px 16px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-secondary); font-weight: 700; border-bottom: 1px solid var(--border-color);">Course Code</th>
+                                <th style="padding: 13px 16px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-secondary); font-weight: 700; border-bottom: 1px solid var(--border-color);">Course Title</th>
+                                <th style="padding: 13px 16px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-secondary); font-weight: 700; border-bottom: 1px solid var(--border-color);">Sec</th>
+                                <th style="padding: 13px 16px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-secondary); font-weight: 700; border-bottom: 1px solid var(--border-color);">Room</th>
+                                <th style="padding: 13px 16px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-secondary); font-weight: 700; border-bottom: 1px solid var(--border-color);">Schedule</th>
+                                <th style="padding: 13px 16px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-secondary); font-weight: 700; border-bottom: 1px solid var(--border-color);">Enrolled</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($mySections as $sec): ?>
+                                <tr>
+                                    <td style="padding: 13px 16px; border-bottom: 1px solid var(--border-color);"><strong><?= htmlspecialchars($sec['course_code']) ?></strong></td>
+                                    <td style="padding: 13px 16px; border-bottom: 1px solid var(--border-color); color: var(--text-secondary);"><?= htmlspecialchars($sec['course_title']) ?></td>
+                                    <td style="padding: 13px 16px; border-bottom: 1px solid var(--border-color);"><span style="background: rgba(168, 85, 247, 0.12); color: var(--accent-primary); font-weight: 700; padding: 3px 9px; border-radius: 6px; font-size: 0.74rem;">§<?= str_pad($sec['section_no'], 2, '0', STR_PAD_LEFT) ?></span></td>
+                                    <td style="padding: 13px 16px; border-bottom: 1px solid var(--border-color); font-family: monospace; color: var(--accent-secondary);"><?= htmlspecialchars($sec['room_no']) ?></td>
+                                    <td style="padding: 13px 16px; border-bottom: 1px solid var(--border-color); font-size: 0.8rem; line-height: 1.4;">
+                                        <?= htmlspecialchars($sec['theory_day_1'] . ' + ' . $sec['theory_day_2'] . ' · ' . $sec['theory_time_slot']) ?>
+                                        <?php if (!empty($sec['lab_day'])): ?>
+                                            <br><span style="color: var(--accent-primary);">Lab: <?= htmlspecialchars($sec['lab_day'] . ' · ' . $sec['lab_time_slot'] . (!empty($sec['lab_room_no']) ? ' · Rm ' . $sec['lab_room_no'] : '')) ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td style="padding: 13px 16px; border-bottom: 1px solid var(--border-color);"><?= intval($sec['enrolled']) ?> / <?= intval($sec['seats']) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <h2 class="page-heading" style="font-size: 1.5rem; margin-bottom: 15px;">All Database Courses</h2>
         <div class="course-list">
             <?php if (empty($courses)): ?>
                 <div class="alert-box alert-success">No courses found in the database. Add a course first.</div>
@@ -413,6 +592,13 @@ $days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Saturday"];
                             </select>
                         </div>
                     </div>
+
+                    <div class="form-group full-width">
+                        <label class="form-label">Lab Room Number</label>
+                        <div class="input-wrapper">
+                            <input type="text" name="lab_room_no" class="form-input" placeholder="e.g. 08L01A" pattern="[0-9A-Za-z]+" title="Lab room number (e.g. 08L01A)">
+                        </div>
+                    </div>
                     
                     <div class="form-group full-width" style="margin-top: 15px;">
                         <button type="submit" class="btn-primary">
@@ -432,23 +618,30 @@ $days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Saturday"];
             document.getElementById('modal_course_title').value = courseTitle;
             document.getElementById('modal_course_code').value = courseCode;
             
-            const labDaySelect = document.querySelector('select[name="lab_day"]');
+            const labDaySelect  = document.querySelector('select[name="lab_day"]');
             const labTimeSelect = document.querySelector('select[name="lab_time_slot"]');
+            const labRoomInput  = document.querySelector('input[name="lab_room_no"]');
             
             if (parseInt(labMarks) === 0) {
-                labDaySelect.required = false;
+                labDaySelect.required  = false;
                 labTimeSelect.required = false;
-                labDaySelect.disabled = true;
+                labRoomInput.required  = false;
+                labDaySelect.disabled  = true;
                 labTimeSelect.disabled = true;
-                labDaySelect.closest('.form-group').style.opacity = '0.4';
+                labRoomInput.disabled  = true;
+                labDaySelect.closest('.form-group').style.opacity  = '0.4';
                 labTimeSelect.closest('.form-group').style.opacity = '0.4';
+                labRoomInput.closest('.form-group').style.opacity  = '0.4';
             } else {
-                labDaySelect.required = true;
+                labDaySelect.required  = true;
                 labTimeSelect.required = true;
-                labDaySelect.disabled = false;
+                labRoomInput.required  = true;
+                labDaySelect.disabled  = false;
                 labTimeSelect.disabled = false;
-                labDaySelect.closest('.form-group').style.opacity = '1';
+                labRoomInput.disabled  = false;
+                labDaySelect.closest('.form-group').style.opacity  = '1';
                 labTimeSelect.closest('.form-group').style.opacity = '1';
+                labRoomInput.closest('.form-group').style.opacity  = '1';
             }
             
             overlay.classList.add('visible');
@@ -470,6 +663,12 @@ $days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Saturday"];
                 closeSectionModal();
             }
         });
+
+        function updateSemesterFilter(id) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('view_semester_id', id);
+            window.location.href = url.toString();
+        }
     </script>
 <?php include 'includes/global_search_js.php'; ?>
 </body>

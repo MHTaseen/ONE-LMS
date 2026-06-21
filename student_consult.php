@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // student_consult.php - Student UI for messaging teachers
 session_start();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
@@ -336,7 +336,7 @@ if ($active_section_id > 0) {
             table { min-width: 550px; font-size: 0.85rem; }
             th, td { padding: 8px 10px; }
         }</style>
-    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="responsive.css?v=2">
 </head>
 <body>
 

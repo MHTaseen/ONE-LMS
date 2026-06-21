@@ -4,9 +4,13 @@ session_start();
 require_once 'config.php';
 require_once 'includes/auth.php';
 
-// If user is already logged in, redirect to landing page
+// If user is already logged in, redirect to appropriate page
 if (isset($_SESSION['user_id'])) {
-    header('Location: landing.php');
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'authority') {
+        header('Location: authority_dashboard.php');
+    } else {
+        header('Location: landing.php');
+    }
     exit();
 }
 
@@ -38,7 +42,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['department'] = $user['department'];
                 $_SESSION['role']       = $user['role'];
 
-                header('Location: landing.php');
+                if ($user['role'] === 'authority') {
+                    header('Location: authority_dashboard.php');
+                } else {
+                    header('Location: landing.php');
+                }
                 exit();
             }
 
@@ -132,10 +140,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </form>
 
             <div class="auth-footer">
-                Unauthorized access is logged.
+                Unauthorized access is logged.<br>
                 <a href="register.php" class="auth-link">Register</a>
                 &nbsp;·&nbsp;
                 <a href="reset_password.php" class="auth-link">Reset password</a>
+                &nbsp;·&nbsp;
+                <a href="authority_portal.php" class="auth-link" style="color: var(--accent-secondary);">Authority Portal</a>
             </div>
         </div>
     </div>

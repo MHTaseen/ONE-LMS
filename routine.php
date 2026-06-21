@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // routine.php – Student access only
 session_start();
 if (!isset($_SESSION['user_id'])) {
@@ -27,16 +27,17 @@ try {
     $stmt->execute([$_SESSION['user_id']]);
     $student_db_id = $stmt->fetch()['id'];
 
-    // Fetch enrolled sections with course info
+    // Fetch enrolled sections with course info for active semester only
+    $activeSemId = isset($activeSemester['id']) ? intval($activeSemester['id']) : 0;
     $stmt = $pdo->prepare("
         SELECT cs.*, c.title, c.code, u.full_name as teacher_name 
         FROM enrollments e 
         JOIN course_sections cs ON e.section_id = cs.id
         JOIN courses c ON cs.course_id = c.id
         JOIN users u ON c.teacher_id = u.id
-        WHERE e.student_id = ?
+        WHERE e.student_id = ? AND e.semester_id = ?
     ");
-    $stmt->execute([$student_db_id]);
+    $stmt->execute([$student_db_id, $activeSemId]);
     $enrolledSections = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
@@ -250,7 +251,7 @@ foreach ($days as $day) {
 
 
     <div class="page-wrap">
-        <h1 class="page-heading">Class Routine</h1>
+        <h1 class="page-heading">Class Routine — <?= htmlspecialchars($activeSemester['label'] ?? 'Unknown Semester') ?></h1>
         <p class="page-subheading">Your weekly academic schedule based on your current enrollments.</p>
 
         <?php if (!empty($errorMsg)): ?>

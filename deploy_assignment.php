@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 session_start();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'teacher') {
     header('Location: landing.php'); exit();
@@ -21,15 +21,17 @@ try {
     $stmt->execute([$_SESSION['user_id']]);
     $teacher_db_id = $stmt->fetch()['id'];
 
-    // Fetch teacher's sections with course info
+    $activeSemId = isset($activeSemester['id']) ? intval($activeSemester['id']) : 0;
+
+    // Fetch teacher's sections with course info in active semester
     $stmt = $pdo->prepare("
         SELECT cs.id, cs.section_no, c.title, c.code
         FROM course_sections cs
         JOIN courses c ON cs.course_id = c.id
-        WHERE c.teacher_id = ?
+        WHERE (c.teacher_id = ? OR cs.teacher_id = ?) AND cs.semester_id = ?
         ORDER BY c.title ASC, cs.section_no ASC
     ");
-    $stmt->execute([$teacher_db_id]);
+    $stmt->execute([$teacher_db_id, $teacher_db_id, $activeSemId]);
     $teacherSections = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $errorMsg = "Failed to load sections: " . $e->getMessage();

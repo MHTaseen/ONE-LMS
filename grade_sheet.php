@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // grade_sheet.php – Student access only
 session_start();
 if (!isset($_SESSION['user_id'])) {
@@ -24,13 +24,14 @@ $gradeRows = [];
 try {
     $stmt = $pdo->prepare("
         SELECT c.code, c.title, c.credit, cs.section_no, u.full_name AS teacher_name,
-               e.score_total, e.score_published
+               e.score_total, e.score_published, e.semester_id, s.label AS semester_label, s.is_active AS semester_active
         FROM enrollments e
         JOIN course_sections cs ON e.section_id = cs.id
         JOIN courses c ON cs.course_id = c.id
         JOIN users u ON c.teacher_id = u.id
+        LEFT JOIN semesters s ON e.semester_id = s.id
         WHERE e.student_id = ?
-        ORDER BY c.code ASC
+        ORDER BY s.year DESC, FIELD(s.season, 'Fall', 'Summer', 'Spring') DESC, c.code ASC
     ");
     $stmt->execute([$_SESSION['user_pk']]);
     $gradeRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -85,7 +86,7 @@ try {
         .btn-back svg { width: 16px; height: 16px; }
 
         /* ── Page ── */
-        .page-wrap { padding: 90px 28px 60px; max-width: 1100px; margin: 0 auto; width: 100%; }
+        .page-wrap { padding: 140px 28px 60px; max-width: 1100px; margin: 0 auto; width: 100%; }
 
         .page-heading {
             font-family: 'Space Grotesque', sans-serif; font-size: 2rem;
@@ -186,7 +187,7 @@ try {
         @media (max-width: 768px) { .page-wrap { padding: 80px 14px 40px; } .score-grid { grid-template-columns: repeat(3,1fr); } }
         @media (max-width: 500px) { .score-grid { grid-template-columns: repeat(2,1fr); } .score-cell { border-bottom: 1px solid var(--border-color); } }
     </style>
-    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="responsive.css?v=2">
 </head>
 <body>
     <div class="ambient-glow-1"></div>
@@ -276,40 +277,97 @@ try {
             </div>
         </div>
 
-        <!-- Grades Table -->
-        <div class="table-responsive" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; box-shadow: var(--card-glow); overflow: hidden;">
-            <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                <thead>
-                    <tr style="border-bottom: 2px solid var(--border-color); background: rgba(168,85,247,.04);">
-                        <th style="padding: 18px 24px; color: var(--text-secondary); font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase;">Course Code</th>
-                        <th style="padding: 18px 24px; color: var(--text-secondary); font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase;">Course Title</th>
-                        <th style="padding: 18px 24px; color: var(--text-secondary); font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase;">Credit</th>
-                        <th style="padding: 18px 24px; color: var(--text-secondary); font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase;">Obtained Grade</th>
-                        <th style="padding: 18px 24px; color: var(--text-secondary); font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase;">Grade Point</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($gradeRows as $row): ?>
-                    <tr style="border-bottom: 1px solid var(--border-color); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
-                        <td style="padding: 18px 24px; font-weight: 700; color: var(--text-primary); font-family: 'Space Grotesque', sans-serif;">
-                            <span style="background: var(--gradient-accent); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"><?= htmlspecialchars($row['code']) ?></span>
-                        </td>
-                        <td style="padding: 18px 24px; color: var(--text-secondary); font-weight: 500;"><?= htmlspecialchars($row['title']) ?></td>
-                        <td style="padding: 18px 24px; color: var(--text-primary); font-weight: 600;"><?= number_format($row['credit'], 1) ?></td>
-                        <td style="padding: 18px 24px; font-weight: 700; font-size: 1.1rem; font-family: 'Space Grotesque', sans-serif; color: <?= $row['point'] !== null ? 'var(--accent-primary)' : 'var(--text-secondary)' ?>;">
-                            <?= $row['letter'] ?>
-                        </td>
-                        <td style="padding: 18px 24px; font-weight: 700; font-size: 1.1rem; font-family: 'Space Grotesque', sans-serif; color: <?= $row['point'] !== null ? 'var(--success-color)' : 'var(--text-secondary)' ?>;">
-                            <?= $row['point'] !== null ? number_format($row['point'], 1) : 'Pending' ?>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+        <!-- Grades Grouped by Semester -->
+        <?php
+        $semestersData = [];
+        foreach ($gradeRows as $row) {
+            $semLabel = $row['semester_label'] ?: 'Unknown Semester';
+            $semestersData[$semLabel][] = $row;
+        }
+
+        foreach ($semestersData as $semLabel => $coursesInSem):
+            $isActive = false;
+            $semTotalCreditPoints = 0;
+            $semTotalCredits = 0;
+            foreach ($coursesInSem as $row) {
+                if (!empty($row['semester_active'])) $isActive = true;
+                if ($row['visible_score'] !== null) {
+                    $semTotalCreditPoints += ($row['credit'] * $row['point']);
+                    $semTotalCredits += $row['credit'];
+                }
+            }
+            $semGpa = $semTotalCredits > 0 ? number_format($semTotalCreditPoints / $semTotalCredits, 2) : 'N/A';
+            $collapseId = 'sem_' . preg_replace('/[^a-zA-Z0-9]/', '_', $semLabel);
+        ?>
+        <div class="semester-group" style="margin-bottom: 24px;">
+            <!-- Semester Header Card -->
+            <div class="sem-header" onclick="toggleSemester('<?= $collapseId ?>')" style="display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 16px; cursor: pointer; user-select: none; transition: background 0.2s; box-shadow: var(--card-glow);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); font-family: 'Space Grotesque', sans-serif;"><?= htmlspecialchars($semLabel) ?></span>
+                    <?php if ($isActive): ?>
+                        <span style="font-size: 0.72rem; font-weight: 700; padding: 3px 8px; border-radius: 20px; background: rgba(168,85,247,0.12); color: var(--accent-primary); border: 1px solid rgba(168,85,247,0.25); text-transform: uppercase;">Current</span>
+                    <?php endif; ?>
+                </div>
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <span style="font-size: 0.95rem; font-weight: 600; color: var(--text-secondary);">Semester GPA: <strong style="color: var(--accent-secondary);"><?= $semGpa ?></strong></span>
+                    <svg id="chevron_<?= $collapseId ?>" style="width: 20px; height: 20px; color: var(--text-secondary); transition: transform 0.3s ease; <?= $isActive ? 'transform: rotate(180deg);' : '' ?>" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Semester Courses Table -->
+            <div id="<?= $collapseId ?>" style="transition: max-height 0.4s ease; overflow: hidden; <?= $isActive ? 'max-height: 1000px;' : 'max-height: 0px;' ?>">
+                <div class="table-responsive" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-top: none; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; box-shadow: var(--card-glow); overflow: hidden; margin-top: -4px;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid var(--border-color); background: rgba(168,85,247,.04);">
+                                <th style="padding: 18px 24px; color: var(--text-secondary); font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase;">Course Code</th>
+                                <th style="padding: 18px 24px; color: var(--text-secondary); font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase;">Course Title</th>
+                                <th style="padding: 18px 24px; color: var(--text-secondary); font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase;">Credit</th>
+                                <th style="padding: 18px 24px; color: var(--text-secondary); font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase;">Obtained Grade</th>
+                                <th style="padding: 18px 24px; color: var(--text-secondary); font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase;">Grade Point</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($coursesInSem as $row): ?>
+                            <tr style="border-bottom: 1px solid var(--border-color); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                                <td style="padding: 18px 24px; font-weight: 700; color: var(--text-primary); font-family: 'Space Grotesque', sans-serif;">
+                                    <span style="background: var(--gradient-accent); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"><?= htmlspecialchars($row['code']) ?></span>
+                                </td>
+                                <td style="padding: 18px 24px; color: var(--text-secondary); font-weight: 500;"><?= htmlspecialchars($row['title']) ?></td>
+                                <td style="padding: 18px 24px; color: var(--text-primary); font-weight: 600;"><?= number_format($row['credit'], 1) ?></td>
+                                <td style="padding: 18px 24px; font-weight: 700; font-size: 1.1rem; font-family: 'Space Grotesque', sans-serif; color: <?= $row['point'] !== null ? 'var(--accent-primary)' : 'var(--text-secondary)' ?>;">
+                                    <?= $row['letter'] ?>
+                                </td>
+                                <td style="padding: 18px 24px; font-weight: 700; font-size: 1.1rem; font-family: 'Space Grotesque', sans-serif; color: <?= $row['point'] !== null ? 'var(--success-color)' : 'var(--text-secondary)' ?>;">
+                                    <?= $row['point'] !== null ? number_format($row['point'], 1) : 'Pending' ?>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
+        <?php endforeach; ?>
 
         <?php endif; ?>
     </div>
+
+    <script>
+    function toggleSemester(id) {
+        const el = document.getElementById(id);
+        const chevron = document.getElementById('chevron_' + id);
+        if (el.style.maxHeight === '0px' || el.style.maxHeight === '') {
+            el.style.maxHeight = '1000px';
+            chevron.style.transform = 'rotate(180deg)';
+        } else {
+            el.style.maxHeight = '0px';
+            chevron.style.transform = 'rotate(0deg)';
+        }
+    }
+    </script>
 <?php include 'includes/global_search_js.php'; ?>
 </body>
 </html>

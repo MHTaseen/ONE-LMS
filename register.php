@@ -18,27 +18,19 @@ $department = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $fullName = trim($_POST['full_name'] ?? '');
     $email = strtolower(trim($_POST['email'] ?? ''));
-    $userId = trim($_POST['user_id'] ?? '');
     $password = $_POST['password'] ?? '';
-    $department = $_POST['department'] ?? '';
 
     // Simple backend validation
-    if (empty($fullName) || empty($email) || empty($userId) || empty($password) || empty($department)) {
+    if (empty($fullName) || empty($email) || empty($password)) {
         $error = 'All fields are required.';
     } else {
         // Enforce role assignment and domains
-        $role = '';
-        if (preg_match('/^[a-zA-Z0-9._%+-]+@g\.bracu\.ac\.bd$/i', $email)) {
-            $role = 'student';
-        } elseif (preg_match('/^[a-zA-Z0-9._%+-]+@bracu\.ac\.bd$/i', $email)) {
-            $role = 'teacher';
-        } elseif (preg_match('/^[a-zA-Z0-9._%+-]+@gmail\.com$/i', $email)) {
-            $role = 'guest';
-        }
-
-        if (empty($role)) {
-            $error = 'Access Denied: Only @g.bracu.ac.bd (Students), @bracu.ac.bd (Teachers), and @gmail.com (Guests) accounts are permitted.';
+        if (preg_match('/^[a-zA-Z0-9._%+-]+@(g\.)?bracu\.ac\.bd$/i', $email)) {
+            $error = 'Access Denied: Institutional email domains (@g.bracu.ac.bd and @bracu.ac.bd) are restricted. Student and Teacher accounts can only be created by the Institution Authority.';
         } else {
+            $role = 'guest';
+            $userId = 'guest_' . bin2hex(random_bytes(8));
+            $department = 'N/A';
             // Check database for unique constraint violations (Email and User ID)
             try {
                 $stmt = $pdo->prepare("SELECT email, user_id FROM users WHERE email = ? OR user_id = ? LIMIT 1");
@@ -139,35 +131,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <!-- Email Input -->
                 <div class="form-group">
-                    <label class="form-label" for="email">Institutional Email</label>
+                    <label class="form-label" for="email">Email Address</label>
                     <div class="input-wrapper">
-                        <input class="form-input" type="email" id="email" name="email" placeholder="example@g.bracu.ac.bd" value="<?= htmlspecialchars($email) ?>" required>
+                        <input class="form-input" type="email" id="email" name="email" placeholder="example@gmail.com" value="<?= htmlspecialchars($email) ?>" required>
                     </div>
                     <div class="form-helper">
-                        Students: @g.bracu.ac.bd | Teachers: @bracu.ac.bd | Guests: @gmail.com
-                    </div>
-                </div>
-
-                <!-- ID Input -->
-                <div class="form-group">
-                    <label class="form-label" for="user_id">Identification ID</label>
-                    <div class="input-wrapper">
-                        <input class="form-input" type="text" id="user_id" name="user_id" placeholder="e.g. 21101234" value="<?= htmlspecialchars($userId) ?>" autocomplete="off" required>
-                    </div>
-                </div>
-
-                <!-- Department Dropdown Select -->
-                <div class="form-group">
-                    <label class="form-label" for="department">Department</label>
-                    <div class="input-wrapper">
-                        <select class="form-input" id="department" name="department" required>
-                            <option value="" disabled <?= empty($department) ? 'selected' : '' ?>>Select Department</option>
-                            <option value="CSE" <?= $department === 'CSE' ? 'selected' : '' ?>>CSE (Computer Science & Engineering)</option>
-                            <option value="CS" <?= $department === 'CS' ? 'selected' : '' ?>>CS (Computer Science)</option>
-                            <option value="EEE" <?= $department === 'EEE' ? 'selected' : '' ?>>EEE (Electrical & Electronic Engineering)</option>
-                            <option value="BBA" <?= $department === 'BBA' ? 'selected' : '' ?>>BBA (Bachelor of Business Administration)</option>
-                            <option value="MNS" <?= $department === 'MNS' ? 'selected' : '' ?>>MNS (Mathematics & Natural Sciences)</option>
-                        </select>
+                        Register with your personal email (e.g., @gmail.com) as a Guest. Student/Teacher signup is managed by the authority.
                     </div>
                 </div>
 

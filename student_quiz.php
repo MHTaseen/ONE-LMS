@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 session_start();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
     header('Location: landing.php'); exit();
@@ -19,17 +19,18 @@ try {
     $stmt->execute([$_SESSION['user_id']]);
     $student_db_id = $stmt->fetch()['id'];
 
-    // Get enrolled sections
+    // Get enrolled sections for active semester
+    $activeSemId = isset($activeSemester['id']) ? intval($activeSemester['id']) : 0;
     $stmt = $pdo->prepare("
         SELECT cs.id as section_id, cs.section_no, c.id as course_id, c.title, c.code, u.full_name as teacher_name
         FROM enrollments e
         JOIN course_sections cs ON e.section_id = cs.id
         JOIN courses c ON cs.course_id = c.id
         JOIN users u ON c.teacher_id = u.id
-        WHERE e.student_id = ?
+        WHERE e.student_id = ? AND e.semester_id = ?
         ORDER BY c.title ASC
     ");
-    $stmt->execute([$student_db_id]);
+    $stmt->execute([$student_db_id, $activeSemId]);
     $sections = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     foreach ($sections as $sec) {
@@ -68,7 +69,7 @@ try {
         .nav-avatar   { width: 40px; height: 40px; border-radius: 50%; background: var(--gradient-accent); display: flex; justify-content: center; align-items: center; color: #fff; font-weight: 700; }
         .btn-back { display: flex; align-items: center; gap: 8px; padding: 9px 18px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 12px; font-size: 0.9rem; font-weight: 600; text-decoration: none; }
         .btn-back:hover { border-color: var(--accent-primary); }
-        .page-wrap { padding: 100px 28px 80px; max-width: 960px; margin: 0 auto; }
+        .page-wrap { padding: 140px 28px 80px; max-width: 960px; margin: 0 auto; }
         .page-heading { font-family: 'Space Grotesk', sans-serif; font-size: 1.9rem; font-weight: 700; margin-bottom: 6px; background: var(--gradient-accent); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .page-subheading { color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 32px; }
         .course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 20px; }
@@ -117,7 +118,7 @@ try {
             table { min-width: 550px; font-size: 0.85rem; }
             th, td { padding: 8px 10px; }
         }</style>
-    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="responsive.css?v=2">
 </head>
 <body>
 <div class="ambient-glow-1"></div>

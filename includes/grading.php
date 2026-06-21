@@ -24,9 +24,9 @@ function teacherOwnsSection(PDO $pdo, int $teacherDbId, int $sectionId): bool {
     $stmt = $pdo->prepare("
         SELECT cs.id FROM course_sections cs
         JOIN courses c ON cs.course_id = c.id
-        WHERE cs.id = ? AND c.teacher_id = ?
+        WHERE cs.id = ? AND (c.teacher_id = ? OR cs.teacher_id = ?)
     ");
-    $stmt->execute([$sectionId, $teacherDbId]);
+    $stmt->execute([$sectionId, $teacherDbId, $teacherDbId]);
     return (bool) $stmt->fetch();
 }
 

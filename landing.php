@@ -1,10 +1,15 @@
-﻿<?php
+<?php
 // landing.php - Core Dashboard / Landing Page
 session_start();
 
 // Redirect to login if user is not authenticated
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
+    exit();
+}
+
+if (isset($_SESSION['role']) && $_SESSION['role'] === 'authority') {
+    header('Location: authority_dashboard.php');
     exit();
 }
 
@@ -167,6 +172,24 @@ if ($userStats) {
 
 if ($role === 'student') {
     $cgpa = computePublishedStudentCgpa($pdo, (int) $_SESSION['user_pk']);
+    
+    $paymentWarn = false;
+    $paymentDeadlineStr = '';
+    if (isset($activeSemester['id'])) {
+        $stmtPay = $pdo->prepare("SELECT status FROM semester_payments WHERE student_id = ? AND semester_id = ? LIMIT 1");
+        $stmtPay->execute([$_SESSION['user_pk'], $activeSemester['id']]);
+        $paymentStatus = $stmtPay->fetchColumn() ?: 'unpaid';
+        
+        // Let's also check if they are actually enrolled in any courses in the active semester
+        $stmtCheckEnroll = $pdo->prepare("SELECT COUNT(*) FROM enrollments WHERE student_id = ? AND semester_id = ?");
+        $stmtCheckEnroll->execute([$_SESSION['user_pk'], $activeSemester['id']]);
+        $hasEnrolledCourses = $stmtCheckEnroll->fetchColumn() > 0;
+        
+        if ($hasEnrolledCourses && $paymentStatus === 'unpaid' && !empty($activeSemester['payment_deadline'])) {
+            $paymentWarn = true;
+            $paymentDeadlineStr = date('F j, Y', strtotime($activeSemester['payment_deadline']));
+        }
+    }
 }
 
 $stmt = $pdo->query("SELECT setting_value FROM settings WHERE setting_key = 'advising_open'");
@@ -652,7 +675,7 @@ if ($role === 'student' || $role === 'guest') {
             min-height: 100vh;
         }
         .page-content > .dashboard-container:first-of-type {
-            padding-top: 72px;
+            padding-top: 20px;
         }
 
         /* ── Student Dashboard Grid ── */
@@ -811,7 +834,7 @@ if ($role === 'student' || $role === 'guest') {
         }
         .universal-search-input {
             width: 100%;
-            padding: 10px 16px 10px 40px;
+            padding: 10px 36px 10px 40px;
             border-radius: 20px;
             border: 1px solid var(--border-color);
             background: var(--bg-secondary);
@@ -839,31 +862,30 @@ if ($role === 'student' || $role === 'guest') {
             right: 10px;
             top: 50%;
             transform: translateY(-50%);
-            width: 34px;
-            height: 34px;
+            width: 22px;
+            height: 22px;
             padding: 0;
             border-radius: 50%;
-            border: 1px solid var(--border-color);
-            background: var(--input-bg);
+            border: none;
+            background: transparent;
             color: var(--text-secondary);
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.2s;
+            transition: background 0.2s, color 0.2s, transform 0.2s;
         }
         .search-filter-toggle:hover,
         .search-filter-toggle.active {
-            background: rgba(168, 85, 247, 0.08);
+            background: rgba(168, 85, 247, 0.15);
             color: var(--accent-primary);
-            border-color: rgba(168, 85, 247, 0.18);
         }
         .search-filter-toggle.active {
             transform: translateY(-50%);
         }
         .search-filter-toggle svg {
-            width: 16px;
-            height: 16px;
+            width: 12px;
+            height: 12px;
             flex-shrink: 0;
             transition: transform 0.2s ease;
         }
@@ -871,15 +893,22 @@ if ($role === 'student' || $role === 'guest') {
             transform: rotate(180deg);
         }
         .search-filter-panel {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            width: 100%;
             display: none;
             padding: 12px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
+            background: #0d1629;
+            border: 1px solid rgba(168, 85, 247, 0.25);
             border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 15px rgba(168, 85, 247, 0.15);
             z-index: 1001;
+        }
+        .light-theme .search-filter-panel {
+            background: #ffffff;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), 0 0 15px rgba(99, 102, 241, 0.08);
         }
         .search-filter-panel.active {
             display: block;
@@ -920,16 +949,19 @@ if ($role === 'student' || $role === 'guest') {
             top: calc(100% + 8px);
             left: 0;
             width: 100%;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
+            background: #0d1629;
+            border: 1px solid rgba(168, 85, 247, 0.25);
             border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            max-height: 400px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 15px rgba(168, 85, 247, 0.15);
+            max-height: 360px;
             overflow-y: auto;
             z-index: 1000;
             display: none;
+        }
+        .light-theme .search-dropdown {
+            background: #ffffff;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), 0 0 15px rgba(99, 102, 241, 0.08);
         }
         .search-dropdown.active {
             display: block;
@@ -1049,7 +1081,7 @@ if ($role === 'student' || $role === 'guest') {
                 margin: 0 6px;
             }
             .universal-search-input {
-                padding: 8px 12px 8px 34px;
+                padding: 8px 32px 8px 34px;
                 font-size: 0.85rem;
             }
             .notif-dropdown {
@@ -1087,7 +1119,6 @@ if ($role === 'student' || $role === 'guest') {
                 max-height: calc(100vh - 32px);
                 overflow-y: auto;
             }
-            .search-filter-toggle { width: 32px; height: 32px; }
         }
 
         /* ── Small Mobile ≤ 600px ── */
@@ -1927,6 +1958,23 @@ if ($role === 'student' || $role === 'guest') {
                 </div>
                 <p>Here's an overview of your academic progress.</p>
             </div>
+            
+            <?php if (isset($paymentWarn) && $paymentWarn): ?>
+                <div class="alert-box alert-error" style="margin-bottom: 24px; border: 1px solid rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.08); display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-radius: 16px; color: #fff;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" style="flex-shrink:0;">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <div style="flex-grow: 1; font-size: 0.92rem; line-height: 1.4;">
+                        <strong style="color: #ef4444;">Payment Due:</strong> You have unpaid course fees for the <strong><?= htmlspecialchars($activeSemester['label']) ?></strong> semester.
+                        Please download your payment slip and clear the payment before <strong style="color: #ef4444;"><?= $paymentDeadlineStr ?></strong> to avoid account freeze.
+                    </div>
+                    <a href="student_payment.php" class="btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; border-radius: 10px; background: linear-gradient(135deg, #a855f7, #ec4899); box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3); border:none; display:inline-block; font-weight:700; color:#fff; white-space:nowrap; transition:all 0.2s;">
+                        Pay Now / Slip
+                    </a>
+                </div>
+            <?php endif; ?>
             
             <div class="stats-grid">
                 

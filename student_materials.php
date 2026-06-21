@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // student_materials.php - Student UI for viewing course materials
 session_start();
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['student', 'guest'])) {
@@ -31,17 +31,18 @@ $categories = [
 // Fetch courses
 $courses = [];
 if ($view_mode === 'my') {
-    // Only courses the student is enrolled in
+    // Only courses the student is enrolled in this semester
+    $activeSemId = isset($activeSemester['id']) ? intval($activeSemester['id']) : 0;
     $stmt = $pdo->prepare("
         SELECT DISTINCT c.id, c.code, c.title, t.full_name as teacher_name
         FROM enrollments e
         JOIN course_sections cs ON e.section_id = cs.id
         JOIN courses c ON cs.course_id = c.id
         JOIN users t ON c.teacher_id = t.id
-        WHERE e.student_id = ?
+        WHERE e.student_id = ? AND e.semester_id = ?
         ORDER BY c.code ASC
     ");
-    $stmt->execute([$student_db_id]);
+    $stmt->execute([$student_db_id, $activeSemId]);
     $courses = $stmt->fetchAll();
 } else {
     // All courses in the university

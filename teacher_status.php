@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // teacher_status.php – Teacher access only
 session_start();
 
@@ -24,8 +24,15 @@ if (count($nameParts) > 1) {
 }
 
 $errorMsg = '';
+$successMsg = '';
 $teacherSections = [];
 $enrolledStudents = [];
+
+$activeSemId = isset($activeSemester['id']) ? intval($activeSemester['id']) : 0;
+$viewSemId = isset($_GET['view_semester_id']) ? intval($_GET['view_semester_id']) : $activeSemId;
+if (!$viewSemId) {
+    $viewSemId = $activeSemId;
+}
 
 try {
     // Get teacher DB id
@@ -33,16 +40,40 @@ try {
     $stmt->execute([$_SESSION['user_id']]);
     $teacher_db_id = $stmt->fetch()['id'];
 
-    // Fetch all sections for this teacher's courses
+    // Handle student removal (POST)
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'remove_student') {
+        $section_id = intval($_POST['section_id'] ?? 0);
+        $student_id = intval($_POST['student_id'] ?? 0);
+        
+        if ($section_id && $student_id) {
+            // Verify if teacher owns this section
+            $stmtCheck = $pdo->prepare("
+                SELECT cs.id FROM course_sections cs
+                JOIN courses c ON cs.course_id = c.id
+                WHERE cs.id = ? AND (c.teacher_id = ? OR cs.teacher_id = ?)
+            ");
+            $stmtCheck->execute([$section_id, $teacher_db_id, $teacher_db_id]);
+            if ($stmtCheck->fetch()) {
+                // Perform deletion from enrollments
+                $stmtDel = $pdo->prepare("DELETE FROM enrollments WHERE student_id = ? AND section_id = ?");
+                $stmtDel->execute([$student_id, $section_id]);
+                $successMsg = "Student successfully removed from the course section.";
+            } else {
+                $errorMsg = "Unauthorized action.";
+            }
+        }
+    }
+
+    // Fetch all sections for this teacher's courses in the selected semester
     $stmt = $pdo->prepare("
         SELECT cs.*, c.title, c.code,
                (SELECT COUNT(*) FROM enrollments WHERE section_id = cs.id) as current_enrollment
         FROM course_sections cs
         JOIN courses c ON cs.course_id = c.id
-        WHERE c.teacher_id = ?
+        WHERE cs.teacher_id = ? AND cs.semester_id = ?
         ORDER BY c.title ASC, cs.section_no ASC
     ");
-    $stmt->execute([$teacher_db_id]);
+    $stmt->execute([$teacher_db_id, $viewSemId]);
     $teacherSections = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // If there are sections, fetch the students enrolled in them
@@ -51,7 +82,7 @@ try {
         $placeholders = implode(',', array_fill(0, count($sectionIds), '?'));
         
         $stmt = $pdo->prepare("
-            SELECT e.section_id, u.full_name, u.user_id as student_id, u.department
+            SELECT e.section_id, u.id as student_db_id, u.full_name, u.user_id as student_id, u.department
             FROM enrollments e
             JOIN users u ON e.student_id = u.id
             WHERE e.section_id IN ($placeholders)
@@ -140,6 +171,30 @@ try {
         tr:last-child td { border-bottom: none; }
         
         .empty-students { padding: 20px; text-align: center; color: var(--text-secondary); font-style: italic; font-size: 0.9rem; }
+        
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: #ef4444;
+        }
+        .btn-sm {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.76rem;
+        }
             /* -- Mobile Responsive Overrides -- */
         @media (max-width: 900px) {
             .page-wrapper, .main-wrapper, .content-area, .page-content-inner { padding: 20px 15px; }
@@ -176,8 +231,31 @@ try {
 
 
     <div class="page-wrap">
-        <h1 class="page-heading">Course Status</h1>
-        <p class="page-subheading">View the current enrollment status and student list for your active sections.</p>
+        <div class="page-hdr" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom: 28px;">
+            <div>
+                <h1 class="page-heading" style="margin-bottom: 4px;">Course Status</h1>
+                <p class="page-subheading" style="margin-bottom: 0;">View the current enrollment status and student list for your active sections.</p>
+            </div>
+            <!-- Semester Filter Dropdown -->
+            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 6px 12px; display: flex; align-items: center; gap: 8px; box-shadow: var(--card-glow); backdrop-filter: blur(10px);">
+                <span style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 700;">Semester:</span>
+                <select id="globalSemSelect" style="border: none; background: transparent; color: var(--text-primary); font-weight: 700; outline: none; cursor: pointer; font-size: 0.9rem;" onchange="updateSemesterFilter(this.value)">
+                    <?php
+                    $allSemsForFilter = getAllSemesters($pdo);
+                    foreach ($allSemsForFilter as $sem):
+                    ?>
+                        <option value="<?= $sem['id'] ?>" <?= $sem['id'] == $viewSemId ? 'selected' : '' ?> style="background: var(--bg-primary); color: var(--text-primary);"><?= htmlspecialchars($sem['label']) ?> <?= $sem['is_active'] ? '(Active)' : '' ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </div>
+
+        <?php if (!empty($successMsg)): ?>
+            <div class="alert-box alert-success" style="margin-bottom: 20px;">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                <?= htmlspecialchars($successMsg) ?>
+            </div>
+        <?php endif; ?>
 
         <?php if (!empty($errorMsg)): ?>
             <div class="alert-box alert-error"><?= htmlspecialchars($errorMsg) ?></div>
@@ -218,6 +296,7 @@ try {
                                                 <th>Student Name</th>
                                                 <th>Student ID</th>
                                                 <th>Department</th>
+                                                <th style="width: 100px;">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -227,6 +306,14 @@ try {
                                                 <td style="font-weight:600; color:var(--text-primary);"><?= htmlspecialchars($stu['full_name']) ?></td>
                                                 <td style="font-family:monospace; color:var(--accent-secondary);"><?= htmlspecialchars($stu['student_id']) ?></td>
                                                 <td><?= htmlspecialchars($stu['department']) ?></td>
+                                                <td>
+                                                    <form method="POST" action="teacher_status.php?view_semester_id=<?= $viewSemId ?>" style="margin: 0; display: inline;">
+                                                        <input type="hidden" name="action" value="remove_student">
+                                                        <input type="hidden" name="section_id" value="<?= $secId ?>">
+                                                        <input type="hidden" name="student_id" value="<?= $stu['student_db_id'] ?>">
+                                                        <button type="submit" class="btn-danger btn-sm" onclick="return confirm('Are you sure you want to remove <?= htmlspecialchars(addslashes($stu['full_name'])) ?> from this section?')">Remove</button>
+                                                    </form>
+                                                </td>
                                             </tr>
                                             <?php endforeach; ?>
                                         </tbody>
@@ -256,6 +343,12 @@ try {
                 accordion.classList.add('active');
                 body.style.maxHeight = body.scrollHeight + "px";
             }
+        }
+
+        function updateSemesterFilter(id) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('view_semester_id', id);
+            window.location.href = url.toString();
         }
     </script>
 <?php include 'includes/global_search_js.php'; ?>
