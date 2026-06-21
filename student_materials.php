@@ -398,7 +398,7 @@ function formatBytes($size, $precision = 2) {
             .mat-search-input { padding-right: 118px; }
             .mat-search-filter-toggle { min-width: 92px; }
         }</style>
-    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
 

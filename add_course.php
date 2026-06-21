@@ -1,5 +1,5 @@
-﻿<?php
-// add_course.php – Teacher access only
+<?php
+// add_course.php � Teacher access only
 session_start();
 
 // Redirect to login if user is not authenticated
@@ -67,13 +67,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Add Course – BRAC University Hub</title>
+    <title>Add Course � BRAC University Hub</title>
     <link rel="stylesheet" href="style.css">
     <script src="theme.js"></script>
     <style>
         body { justify-content: flex-start; align-items: stretch; padding-top: 0; }
 
-        /* ── Navbar ── */
+        /* -- Navbar -- */
         .top-navbar {
             position: fixed; top: 0; left: 0; right: 0; height: auto; min-height: 64px;
             z-index: 900; display: flex; align-items: center; padding: 10px 28px;
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         .btn-back svg { width: 16px; height: 16px; }
 
-        /* ── Page content ── */
+        /* -- Page content -- */
         .page-wrap {
             padding: 100px 28px 60px; max-width: 800px;
             margin: 0 auto; width: 100%;
@@ -128,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 32px;
         }
 
-        /* ── Form Card ── */
+        /* -- Form Card -- */
         .form-card {
             background: var(--bg-secondary); border: 1px solid var(--border-color);
             border-radius: 24px; padding: 40px; box-shadow: var(--card-glow);
@@ -188,7 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             table { min-width: 550px; font-size: 0.85rem; }
             th, td { padding: 8px 10px; }
         }</style>
-    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
 

@@ -5,7 +5,6 @@ if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit();
 }
-// Block non-students
 if ($_SESSION['role'] !== 'student') {
     header('Location: landing.php');
     exit();
@@ -22,16 +21,14 @@ $errorMsg = '';
 $enrolledSections = [];
 
 try {
-    // Get student db id
     $stmt = $pdo->prepare("SELECT id FROM users WHERE user_id = ?");
     $stmt->execute([$_SESSION['user_id']]);
     $student_db_id = $stmt->fetch()['id'];
 
-    // Fetch enrolled sections with course info for active semester only
     $activeSemId = isset($activeSemester['id']) ? intval($activeSemester['id']) : 0;
     $stmt = $pdo->prepare("
-        SELECT cs.*, c.title, c.code, u.full_name as teacher_name 
-        FROM enrollments e 
+        SELECT cs.*, c.title, c.code, u.full_name as teacher_name
+        FROM enrollments e
         JOIN course_sections cs ON e.section_id = cs.id
         JOIN courses c ON cs.course_id = c.id
         JOIN users u ON c.teacher_id = u.id
@@ -44,48 +41,74 @@ try {
     $errorMsg = "Failed to load routine: " . $e->getMessage();
 }
 
-// Prepare schedule grid data
+// ── Build schedule data ──────────────────────────────────────────────────────
 $days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Saturday"];
 $scheduleData = [];
-foreach ($days as $day) {
-    $scheduleData[$day] = [];
-}
+foreach ($days as $day) $scheduleData[$day] = [];
 
 foreach ($enrolledSections as $sec) {
-    $courseInfo = [
-        'code' => $sec['code'],
+    $base = [
+        'code'       => $sec['code'],
+        'title'      => $sec['title'],
         'section_no' => str_pad($sec['section_no'], 2, '0', STR_PAD_LEFT),
-        'room' => $sec['room_no'],
-        'type' => 'Theory'
+        'room'       => $sec['room_no'],
+        'teacher'    => $sec['teacher_name'],
+        'type'       => 'Theory',
     ];
-    
-    // Add theory classes
-    if (isset($scheduleData[$sec['theory_day_1']])) {
-        $scheduleData[$sec['theory_day_1']][] = array_merge($courseInfo, ['time' => $sec['theory_time_slot']]);
+    if (!empty($sec['theory_day_1']) && isset($scheduleData[$sec['theory_day_1']])) {
+        $scheduleData[$sec['theory_day_1']][] = array_merge($base, ['time' => $sec['theory_time_slot']]);
     }
-    if (isset($scheduleData[$sec['theory_day_2']])) {
-        $scheduleData[$sec['theory_day_2']][] = array_merge($courseInfo, ['time' => $sec['theory_time_slot']]);
+    if (!empty($sec['theory_day_2']) && isset($scheduleData[$sec['theory_day_2']])) {
+        $scheduleData[$sec['theory_day_2']][] = array_merge($base, ['time' => $sec['theory_time_slot']]);
     }
-    
-    // Add lab class
-    if (isset($scheduleData[$sec['lab_day']])) {
-        $labInfo = $courseInfo;
-        $labInfo['type'] = 'Lab';
-        $labInfo['time'] = $sec['lab_time_slot'];
-        $scheduleData[$sec['lab_day']][] = $labInfo;
+    if (!empty($sec['lab_day']) && isset($scheduleData[$sec['lab_day']])) {
+        $scheduleData[$sec['lab_day']][] = array_merge($base, [
+            'type' => 'Lab',
+            'time' => $sec['lab_time_slot'],
+            'room' => $sec['lab_room_no'] ?: $sec['room_no'],
+        ]);
     }
 }
 
-// Sort each day's classes by time (simple string sort works since time formats start with 08, 09, 10, 11, 12, 01...)
-// Actually, AM/PM sort requires a bit more logic. Let's do a simple sort function.
-function sortTime($a, $b) {
-    $timeA = strtotime(explode('-', $a['time'])[0]);
-    $timeB = strtotime(explode('-', $b['time'])[0]);
-    return $timeA - $timeB;
+// ── Collect & sort unique time slots ────────────────────────────────────────
+$allTimeSlots = [];
+foreach ($scheduleData as $classes) {
+    foreach ($classes as $cls) {
+        if (!empty($cls['time']) && !in_array($cls['time'], $allTimeSlots)) {
+            $allTimeSlots[] = $cls['time'];
+        }
+    }
 }
+usort($allTimeSlots, function($a, $b) {
+    return strtotime(explode(' - ', $a)[0]) - strtotime(explode(' - ', $b)[0]);
+});
 
+// ── Build lookup: day -> timeSlot -> [classes] ────────────────────────────
+$gridData = [];
 foreach ($days as $day) {
-    usort($scheduleData[$day], 'sortTime');
+    $gridData[$day] = [];
+    foreach ($scheduleData[$day] as $cls) {
+        $gridData[$day][$cls['time']][] = $cls;
+    }
+}
+
+// ── Helper: shorten time label ────────────────────────────────────────────
+function shortTimeLabel(string $slot): string {
+    // "08:00 AM - 09:20 AM" → "8:00–9:20"
+    $parts = explode(' - ', $slot);
+    $fmt = function($t) {
+        $t = trim($t);
+        $d = date_create($t);
+        if (!$d) return $t;
+        $h = (int)date('g', $d->getTimestamp());
+        $m = date('i', $d->getTimestamp());
+        $suffix = date('A', $d->getTimestamp()) === 'PM' && $h !== 12 ? 'pm' : ($m === '00' ? '' : '');
+        return $m === '00' ? "{$h}{$suffix}" : "{$h}:{$m}";
+    };
+    if (count($parts) === 2) {
+        return $fmt($parts[0]) . '–' . $fmt($parts[1]);
+    }
+    return $slot;
 }
 ?>
 <!DOCTYPE html>
@@ -93,7 +116,7 @@ foreach ($days as $day) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Routine – BRAC University Hub</title>
+    <title>Routine – ONE LMS</title>
     <link rel="stylesheet" href="style.css">
     <script src="theme.js"></script>
     <style>
@@ -131,15 +154,14 @@ foreach ($days as $day) {
             font-weight: 600; backdrop-filter: blur(12px); text-decoration: none;
             transition: border-color .25s, box-shadow .25s, transform .2s;
         }
-        .btn-back:hover {
-            border-color: var(--accent-primary);
-            box-shadow: var(--glow-shadow); transform: translateY(-2px);
-        }
+        .btn-back:hover { border-color: var(--accent-primary); box-shadow: var(--glow-shadow); transform: translateY(-2px); }
         .btn-back svg { width: 16px; height: 16px; }
 
         .page-wrap {
-            padding: 90px 28px 40px; max-width: 1000px;
-            margin: 0 auto; width: 100%;
+            padding: 90px 24px 48px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
         }
         .page-heading {
             font-family: 'Space Grotesque', sans-serif; font-size: 1.9rem;
@@ -147,112 +169,199 @@ foreach ($days as $day) {
             background: var(--gradient-accent);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
-        .page-subheading {
-            color: var(--text-secondary); font-size: .95rem; margin-bottom: 32px;
-        }
+        .page-subheading { color: var(--text-secondary); font-size: .95rem; margin-bottom: 28px; }
 
-        /* Calendar Styles */
-        .calendar-wrapper {
-            background: var(--bg-secondary); border: 1px solid var(--border-color);
-            border-radius: 20px; box-shadow: var(--card-glow);
-            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-            overflow: hidden; margin-top: 20px;
+        /* ── Timetable wrapper card ── */
+        .tt-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            box-shadow: var(--card-glow);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            overflow: hidden;
+            margin-top: 20px;
         }
-        
-        .calendar-header {
-            background: rgba(168, 85, 247, 0.1); padding: 20px;
+        .tt-header {
+            background: linear-gradient(135deg, rgba(168,85,247,.12), rgba(6,182,212,.08));
+            padding: 18px 24px;
             border-bottom: 1px solid var(--border-color);
-            font-family: 'Space Grotesque', sans-serif; font-size: 1.25rem;
-            color: var(--text-primary); font-weight: 700;
+            display: flex; align-items: center; gap: 10px;
+            font-family: 'Space Grotesque', sans-serif;
+            font-size: 1.2rem; font-weight: 700; color: var(--text-primary);
+        }
+        .tt-header-icon { font-size: 1.3rem; }
+
+        /* Scroll wrapper – horizontal scroll on small screens */
+        .tt-scroll {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
         }
 
-        .day-row {
-            display: flex; border-bottom: 1px solid var(--border-color);
-            min-height: 100px;
-        }
-        .day-row:last-child { border-bottom: none; }
-        
-        .day-label {
-            width: 140px; min-width: 140px; padding: 20px;
-            background: rgba(0,0,0,0.2); border-right: 1px solid var(--border-color);
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 700; font-family: 'Space Grotesque', sans-serif;
-            color: var(--accent-secondary); letter-spacing: 0.5px;
-        }
-        .light-theme .day-label { background: rgba(255,255,255,0.4); }
-        
-        .classes-container {
-            flex-grow: 1; padding: 15px; display: flex; gap: 15px; flex-wrap: wrap;
-        }
-        
-        .class-card {
-            background: var(--input-bg); border: 1px solid var(--border-color);
-            border-radius: 12px; padding: 12px 16px; width: 220px;
-            position: relative; overflow: hidden;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .class-card:hover { transform: translateY(-2px); box-shadow: var(--glow-shadow); }
-        .class-card::before {
-            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
-        }
-        .class-theory::before { background: var(--accent-secondary); }
-        .class-lab::before { background: var(--accent-primary); }
-        
-        .class-time { font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 5px; }
-        .class-code { font-family: 'Space Grotesque', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
-        .class-details { display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.85rem; color: var(--text-secondary); }
-        .class-type { font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
-        .class-type.theory { color: var(--accent-secondary); }
-        .class-type.lab { color: var(--accent-primary); }
-        
-        .empty-day {
-            display: flex; align-items: center; color: var(--text-secondary);
-            font-style: italic; font-size: 0.9rem; padding: 10px; opacity: 0.6;
+        /* ── The timetable grid ──
+           Column 1 = time label, columns 2-7 = one per day (6 days) */
+        .tt-grid {
+            display: grid;
+            grid-template-columns: 140px repeat(6, minmax(130px, 1fr));
+            min-width: 800px;
+            border-collapse: collapse; /* visual effect via borders */
         }
 
-        @media (max-width: 768px) {
-            .day-row { flex-direction: column; }
-            .day-label { width: 100%; border-right: none; border-bottom: 1px solid var(--border-color); padding: 10px 20px; justify-content: flex-start; }
-            .class-card { width: 100%; }
+        /* ── Header row ── */
+        .tt-corner {
+            background: rgba(168,85,247,.06);
+            border-bottom: 2px solid var(--accent-primary);
+            border-right: 1px solid var(--border-color);
         }
-            /* -- Mobile Responsive Overrides -- */
-        @media (max-width: 900px) {
-            .page-wrapper, .main-wrapper, .content-area, .page-content-inner { padding: 20px 15px; }
-            .form-grid, .grid-2col { grid-template-columns: 1fr !important; }
-            .filter-row, .action-row { flex-wrap: wrap; gap: 10px; }
+        .tt-day-head {
+            padding: 14px 10px;
+            background: rgba(168,85,247,.08);
+            border-bottom: 2px solid var(--accent-primary);
+            border-right: 1px solid var(--border-color);
+            text-align: center;
+            font-family: 'Space Grotesque', sans-serif;
+            font-weight: 700; font-size: 0.85rem;
+            text-transform: uppercase; letter-spacing: 0.7px;
+            color: var(--accent-primary);
         }
+        .tt-day-head:last-child { border-right: none; }
+
+        /* ── Time-slot row label ── */
+        .tt-time {
+            padding: 10px 12px;
+            background: rgba(0,0,0,.14);
+            border-bottom: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            text-align: center; gap: 2px;
+        }
+        .light-theme .tt-time { background: rgba(255,255,255,.45); }
+        .tt-time-main {
+            font-family: 'Space Grotesque', sans-serif;
+            font-size: 0.8rem; font-weight: 700;
+            color: var(--accent-secondary);
+        }
+        .tt-time-full {
+            font-size: 0.65rem; color: var(--text-secondary);
+            line-height: 1.3;
+        }
+
+        /* ── Day cell in each row ── */
+        .tt-cell {
+            padding: 8px;
+            border-bottom: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column; gap: 6px;
+            min-height: 80px;
+        }
+        .tt-cell:last-child { border-right: none; }
+
+        /* ── Class card inside a cell ── */
+        .tt-class-card {
+            position: relative;
+            overflow: hidden;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 8px 10px 8px 14px;
+            transition: transform .18s, box-shadow .18s;
+            cursor: default;
+        }
+        .tt-class-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--glow-shadow);
+        }
+        .tt-class-card::before {
+            content: '';
+            position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+            border-radius: 2px 0 0 2px;
+        }
+        .tt-class-card.theory::before { background: var(--accent-secondary); }
+        .tt-class-card.lab::before    { background: var(--accent-primary); }
+
+        .ttc-code {
+            font-family: 'Space Grotesque', sans-serif;
+            font-size: 0.9rem; font-weight: 700;
+            color: var(--text-primary); margin-bottom: 3px;
+        }
+        .ttc-meta {
+            display: flex; flex-wrap: wrap; gap: 4px 10px;
+            font-size: 0.7rem; color: var(--text-secondary);
+        }
+        .ttc-meta span { white-space: nowrap; }
+        .ttc-pill {
+            display: inline-block;
+            margin-top: 4px;
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+        }
+        .ttc-pill.theory { background: rgba(6,182,212,.14); color: var(--accent-secondary); }
+        .ttc-pill.lab    { background: rgba(168,85,247,.14); color: var(--accent-primary); }
+
+        /* Empty cell */
+        .tt-cell-empty {
+            color: transparent; /* completely invisible – just empty space */
+        }
+
+        /* Scroll hint */
+        .tt-scroll-hint {
+            display: none;
+            text-align: center;
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            padding: 8px 0 4px;
+            opacity: .7;
+        }
+
+        /* Legend */
+        .tt-legend {
+            display: flex; gap: 18px; flex-wrap: wrap;
+            padding: 14px 24px;
+            border-top: 1px solid var(--border-color);
+            background: rgba(168,85,247,.03);
+        }
+        .legend-item {
+            display: flex; align-items: center; gap: 7px;
+            font-size: 0.8rem; color: var(--text-secondary);
+        }
+        .legend-dot {
+            width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0;
+        }
+        .legend-dot.theory { background: var(--accent-secondary); }
+        .legend-dot.lab    { background: var(--accent-primary); }
+
         @media (max-width: 768px) {
-            .page-wrapper, .main-wrapper, .content-area, .page-content-inner { padding: 14px 10px; }
-            .card-grid, .section-grid { grid-template-columns: 1fr !important; }
-            .btn-row { flex-direction: column; }
-            .modal-content, .popup-card { width: calc(100% - 24px); margin: 12px; max-height: 90vh; overflow-y: auto; }
-            h1, .page-title { font-size: 1.5rem; }
-            h2, .section-title { font-size: 1.2rem; }
+            .page-wrap { padding: 80px 12px 32px; }
+            .tt-scroll-hint { display: block; }
+            .tt-grid { min-width: 700px; }
+            .tt-corner, .tt-time { width: 110px; }
         }
         @media (max-width: 600px) {
             .top-navbar { padding: 0 10px; }
             .navbar-brand { display: none; }
-            .theme-btn span { display: none; }
-            .theme-btn { padding: 8px 10px; }
             .nav-avatar { width: 34px; height: 34px; font-size: 0.8rem; }
-            .btn-primary, .submit-btn, .action-btn { width: 100%; font-size: 0.95rem; }
-            .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-            table { min-width: 550px; font-size: 0.85rem; }
-            th, td { padding: 8px 10px; }
-        }</style>
-    <link rel="stylesheet" href="responsive.css">
+            .page-wrap { padding: 72px 10px 28px; }
+        }
+    </style>
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
     <div class="ambient-glow-1"></div>
     <div class="ambient-glow-2"></div>
 
     <?php include 'includes/global_nav.php'; ?>
-<?php include 'includes/shared_drawer.php'; ?>
-
+    <?php include 'includes/shared_drawer.php'; ?>
 
     <div class="page-wrap">
         <h1 class="page-heading">Class Routine — <?= htmlspecialchars($activeSemester['label'] ?? 'Unknown Semester') ?></h1>
-        <p class="page-subheading">Your weekly academic schedule based on your current enrollments.</p>
+        <p class="page-subheading">Your weekly timetable. Classes are placed at their exact time slot.</p>
 
         <?php if (!empty($errorMsg)): ?>
             <div class="alert-box alert-error"><?= htmlspecialchars($errorMsg) ?></div>
@@ -260,43 +369,86 @@ foreach ($days as $day) {
 
         <?php if (empty($enrolledSections)): ?>
             <div class="alert-box" style="background:var(--bg-secondary); border-color:var(--border-color);">
-                You are not enrolled in any courses yet. Go to the Advising panel to register for classes.
+                You are not enrolled in any courses yet. Visit
+                <a href="advising.php" style="color:var(--accent-primary);text-decoration:none;">Advising</a>
+                to register for classes.
             </div>
         <?php else: ?>
-            <div class="calendar-wrapper">
-                <div class="calendar-header">Weekly Calendar</div>
-                
-                <?php foreach ($days as $day): ?>
-                    <div class="day-row">
-                        <div class="day-label"><?= $day ?></div>
-                        <div class="classes-container">
-                            <?php if (empty($scheduleData[$day])): ?>
-                                <div class="empty-day">No classes scheduled</div>
-                            <?php else: ?>
-                                <?php foreach ($scheduleData[$day] as $class): 
-                                    $isLab = $class['type'] === 'Lab';
-                                    $cardClass = $isLab ? 'class-lab' : 'class-theory';
-                                    $typeClass = $isLab ? 'lab' : 'theory';
-                                ?>
-                                    <div class="class-card <?= $cardClass ?>">
-                                        <div class="class-time"><?= htmlspecialchars($class['time']) ?></div>
-                                        <div class="class-code"><?= htmlspecialchars($class['code']) ?></div>
-                                        <div class="class-details">
-                                            <span>Sec: <?= htmlspecialchars($class['section_no']) ?></span>
-                                            <span>Room: <?= htmlspecialchars($class['room']) ?></span>
-                                        </div>
-                                        <div style="margin-top:8px;">
-                                            <span class="class-type <?= $typeClass ?>"><?= $class['type'] ?></span>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
+
+        <div class="tt-card">
+            <div class="tt-header">
+                <span class="tt-header-icon">📅</span>
+                Weekly Timetable
             </div>
+
+            <div class="tt-scroll">
+                <div class="tt-grid">
+
+                    <!-- ── Header row: corner + day names ── -->
+                    <div class="tt-corner"></div>
+                    <?php foreach ($days as $day): ?>
+                        <div class="tt-day-head"><?= $day ?></div>
+                    <?php endforeach; ?>
+
+                    <?php if (empty($allTimeSlots)): ?>
+                        <!-- No time slots at all – show a single empty row -->
+                        <div class="tt-time"><span class="tt-time-main">—</span></div>
+                        <?php foreach ($days as $day): ?>
+                            <div class="tt-cell tt-cell-empty"></div>
+                        <?php endforeach; ?>
+
+                    <?php else: ?>
+                        <!-- ── One row per time slot ── -->
+                        <?php foreach ($allTimeSlots as $slot): ?>
+                            <div class="tt-time">
+                                <span class="tt-time-main"><?= htmlspecialchars(shortTimeLabel($slot)) ?></span>
+                                <span class="tt-time-full"><?= nl2br(htmlspecialchars(str_replace(' - ', "\n", $slot))) ?></span>
+                            </div>
+
+                            <?php foreach ($days as $day): ?>
+                                <div class="tt-cell">
+                                    <?php if (!empty($gridData[$day][$slot])): ?>
+                                        <?php foreach ($gridData[$day][$slot] as $cls):
+                                            $isLab   = $cls['type'] === 'Lab';
+                                            $typeKey = $isLab ? 'lab' : 'theory';
+                                        ?>
+                                        <div class="tt-class-card <?= $typeKey ?>">
+                                            <div class="ttc-code"><?= htmlspecialchars($cls['code']) ?></div>
+                                            <div class="ttc-meta">
+                                                <span>Sec <?= htmlspecialchars($cls['section_no']) ?></span>
+                                                <span><?= htmlspecialchars($cls['room']) ?></span>
+                                            </div>
+                                            <span class="ttc-pill <?= $typeKey ?>"><?= $cls['type'] ?></span>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+
+                </div><!-- /tt-grid -->
+            </div><!-- /tt-scroll -->
+
+            <p class="tt-scroll-hint">← Swipe left / right to see all days →</p>
+
+            <!-- Legend -->
+            <div class="tt-legend">
+                <div class="legend-item">
+                    <div class="legend-dot theory"></div>
+                    <span>Theory class</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot lab"></div>
+                    <span>Lab class</span>
+                </div>
+            </div>
+        </div><!-- /tt-card -->
+
         <?php endif; ?>
     </div>
+
 <?php include 'includes/global_search_js.php'; ?>
 </body>
 </html>

@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Register - BRACU Thesis Prototype</title>
     <link rel="stylesheet" href="style.css">
     <script src="theme.js"></script>
-    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
 

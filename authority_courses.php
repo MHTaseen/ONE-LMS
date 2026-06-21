@@ -339,7 +339,7 @@ function formatBytes($b,$p=2){if(!$b)return'0 B';$base=log($b,1024);$s=['B','KB'
     <meta name="description" content="Authority course management: create courses, assign teachers, enroll students, manage content.">
     <link rel="stylesheet" href="style.css">
     <script src="theme.js"></script>
-    <link rel="stylesheet" href="responsive.css?v=2">
+    <link rel="stylesheet" href="responsive.css?v=3">
     <style>
         body { justify-content: flex-start; align-items: stretch; padding-top: 0; }
 

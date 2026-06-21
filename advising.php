@@ -577,7 +577,7 @@ try {
             font-size: .88rem; font-style: italic;
         }
     </style>
-    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
     <!-- DEBUG: advisingOpen = <?= var_export($advisingOpen, true) ?> -->

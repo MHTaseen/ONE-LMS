@@ -368,7 +368,7 @@ $days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Saturday"];
             table { min-width: 550px; font-size: 0.85rem; }
             th, td { padding: 8px 10px; }
         }</style>
-    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
 
@@ -462,7 +462,7 @@ $days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Saturday"];
         <h2 class="page-heading" style="font-size: 1.5rem; margin-bottom: 15px;">All Database Courses</h2>
         <div class="course-list">
             <?php if (empty($courses)): ?>
-                <div class="alert-box alert-success">No courses found in the database. Add a course first.</div>
+                <div class="alert-box alert-success persistent">No courses found in the database. Add a course first.</div>
             <?php else: ?>
                 <?php foreach ($courses as $course): ?>
                     <div class="course-card">

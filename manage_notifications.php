@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // manage_notifications.php - User preferences for notifications
 session_start();
 if (!isset($_SESSION['user_id'])) {
@@ -145,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             table { min-width: 550px; font-size: 0.85rem; }
             th, td { padding: 8px 10px; }
         }</style>
-    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
 

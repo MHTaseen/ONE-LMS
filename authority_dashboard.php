@@ -2,6 +2,7 @@
 // authority_dashboard.php - Control panel for administrative authorities
 session_start();
 require_once 'config.php';
+require_once 'includes/notification_system.php';
 
 // Auth check
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'authority') {
@@ -35,6 +36,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_paid'])) {
     // Unfreeze user on payment
     $upd = $pdo->prepare("UPDATE users SET is_frozen = 0 WHERE id = ?");
     $upd->execute([$student_id]);
+    
+    // Send confirmation notification to the student
+    $semStmt = $pdo->prepare("SELECT label FROM semesters WHERE id = ?");
+    $semStmt->execute([$semester_id]);
+    $semesterLabel = $semStmt->fetchColumn() ?: "the semester";
+    
+    $notifMsg = "Your payment for $semesterLabel has been confirmed.";
+    sendNotification($pdo, $student_id, 'payment', $notifMsg, 'student_payment.php');
     
     $success = "Student payment recorded and account unfrozen.";
 }
@@ -267,7 +276,7 @@ try {
     <title>Authority Dashboard - BRACU Hub</title>
     <link rel="stylesheet" href="style.css">
     <script src="theme.js"></script>
-    <link rel="stylesheet" href="responsive.css?v=2">
+    <link rel="stylesheet" href="responsive.css?v=3">
     <style>
         body { justify-content: flex-start; align-items: stretch; padding-top: 0; }
         

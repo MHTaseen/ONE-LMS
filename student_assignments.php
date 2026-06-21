@@ -178,7 +178,7 @@ try {
             table { min-width: 550px; font-size: 0.85rem; }
             th, td { padding: 8px 10px; }
         }</style>
-    <link rel="stylesheet" href="responsive.css?v=2">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
 <div class="ambient-glow-1"></div>
@@ -310,6 +310,10 @@ function triggerSubmit(assignmentId) {
 
 function doSubmit(assignmentId, input) {
     if (!input.files || !input.files[0]) return;
+    if (!confirm('Are you sure you want to submit this assignment?')) {
+        input.value = '';
+        return;
+    }
     const btn = document.getElementById('sbtn_' + assignmentId);
     btn.disabled = true;
     btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/></svg> Uploading…';

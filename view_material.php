@@ -153,7 +153,7 @@ if (isset($_GET['download']) && $_GET['download'] === '1') {
             table { min-width: 550px; font-size: 0.85rem; }
             th, td { padding: 8px 10px; }
         }</style>
-    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
 

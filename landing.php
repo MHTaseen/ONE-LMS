@@ -1303,8 +1303,8 @@ if ($role === 'student' || $role === 'guest') {
             .notif-cards-grid { grid-template-columns: 1fr; }
         }
 
-        /* ── Routine widget ── */
-        .routine-scroll-wrap {
+        /* ── Routine widget: timetable grid (time rows × day columns) ── */
+        .routine-widget-scroll {
             width: 100%;
             max-width: 100%;
             overflow-x: auto;
@@ -1312,8 +1312,93 @@ if ($role === 'student' || $role === 'guest') {
             overscroll-behavior-x: contain;
             border-radius: 12px;
             border: 1px solid var(--border-color);
-            background: rgba(0,0,0,0.12);
         }
+        /* Grid: col 1 = time label, cols 2-7 = days */
+        .rw-tt-grid {
+            display: grid;
+            grid-template-columns: 110px repeat(6, minmax(110px, 1fr));
+            min-width: 610px;
+        }
+        /* Corner cell */
+        .rw-corner {
+            background: rgba(168,85,247,.05);
+            border-bottom: 2px solid var(--accent-primary);
+            border-right: 1px solid var(--border-color);
+        }
+        /* Day header */
+        .rw-day-head {
+            padding: 10px 6px;
+            background: rgba(168,85,247,.08);
+            border-bottom: 2px solid var(--accent-primary);
+            border-right: 1px solid var(--border-color);
+            text-align: center;
+            font-family: 'Space Grotesque', sans-serif;
+            font-weight: 700; font-size: 0.75rem;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            color: var(--accent-primary);
+        }
+        .rw-day-head:last-child { border-right: none; }
+        /* Time label column */
+        .rw-time-label {
+            padding: 8px 10px;
+            background: rgba(0,0,0,.12);
+            border-bottom: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            text-align: center;
+        }
+        .light-theme .rw-time-label { background: rgba(255,255,255,.45); }
+        .rw-time-short {
+            font-family: 'Space Grotesque', sans-serif;
+            font-size: 0.7rem; font-weight: 700;
+            color: var(--accent-secondary);
+        }
+        .rw-time-long {
+            font-size: 0.58rem; color: var(--text-secondary); line-height: 1.35;
+        }
+        /* Day cell */
+        .rw-tt-cell {
+            padding: 6px;
+            border-bottom: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column; gap: 5px;
+            min-height: 68px;
+        }
+        .rw-tt-cell:last-child { border-right: none; }
+        /* Class card */
+        .rw-card {
+            position: relative; overflow: hidden;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 6px 8px 6px 12px;
+            transition: transform .18s;
+        }
+        .rw-card:hover { transform: translateY(-1px); box-shadow: var(--glow-shadow); }
+        .rw-card::before {
+            content: '';
+            position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+            border-radius: 2px 0 0 2px;
+        }
+        .rw-card.theory::before { background: #10b981; }
+        .rw-card.lab::before    { background: var(--accent-primary); }
+        .rw-card-code {
+            font-family: 'Space Grotesque', sans-serif;
+            font-size: 0.8rem; font-weight: 700;
+            color: var(--text-primary);
+        }
+        .rw-card-meta {
+            display: flex; flex-wrap: wrap; gap: 2px 8px;
+            font-size: 0.65rem; color: var(--text-secondary); margin-top: 2px;
+        }
+        .rw-type-pill {
+            display: inline-block; margin-top: 3px;
+            font-size: 0.6rem; font-weight: 700;
+            padding: 1px 6px; border-radius: 4px;
+        }
+        .rw-type-pill.theory { background: rgba(16,185,129,.12); color: #10b981; }
+        .rw-type-pill.lab    { background: rgba(168,85,247,.12); color: var(--accent-primary); }
         .routine-scroll-hint {
             display: none;
             font-size: 0.72rem;
@@ -1321,59 +1406,6 @@ if ($role === 'student' || $role === 'guest') {
             text-align: center;
             padding: 6px 8px 0;
         }
-        .routine-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; min-width: 560px; }
-        .routine-table th,
-        .routine-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
-        .routine-table th {
-            color: var(--text-secondary);
-            font-weight: 600;
-            font-size: 0.72rem;
-            text-transform: uppercase;
-            letter-spacing: .05em;
-            background: rgba(168,85,247,0.04);
-        }
-        .routine-mobile-cards { display: none; }
-        .routine-day-label {
-            font-weight: 700;
-            color: var(--accent-secondary);
-            font-size: 0.85rem;
-            margin: 12px 0 8px;
-            padding-bottom: 6px;
-            border-bottom: 1px solid var(--border-color);
-        }
-        .routine-day-label:first-child { margin-top: 0; }
-        .routine-card {
-            background: var(--input-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 12px 14px;
-            margin-bottom: 10px;
-        }
-        .routine-card-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            padding: 4px 0;
-            font-size: 0.84rem;
-        }
-        .routine-card-row span:first-child {
-            color: var(--text-secondary);
-            flex-shrink: 0;
-        }
-        .routine-card-row span:last-child {
-            color: var(--text-primary);
-            font-weight: 600;
-            text-align: right;
-            word-break: break-word;
-        }
-        .routine-type-pill {
-            padding: 3px 9px;
-            border-radius: 6px;
-            font-size: 0.72rem;
-            font-weight: 700;
-        }
-        .routine-type-pill.theory { background: rgba(16,185,129,0.12); color: #10b981; }
-        .routine-type-pill.lab { background: rgba(168,85,247,0.12); color: var(--accent-primary); }
 
         /* ── Mobile drawer overlay ── */
         .drawer-backdrop {
@@ -1495,7 +1527,7 @@ if ($role === 'student' || $role === 'guest') {
             }
         }
     </style>
-    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body class="landing-page">
 
@@ -1558,6 +1590,16 @@ if ($role === 'student' || $role === 'guest') {
                 </svg>
                 Grade Sheet
             </a>
+            <?php if ($role === 'student'): ?>
+            <a href="student_payment.php" class="drawer-item" role="menuitem">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="4" width="20" height="16" rx="2" ry="2"/>
+                    <line x1="12" y1="4" x2="12" y2="20"/>
+                    <line x1="2" y1="10" x2="22" y2="10"/>
+                </svg>
+                My Payment
+            </a>
+            <?php endif; ?>
 
             <a href="routine.php" class="drawer-item" role="menuitem">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1960,7 +2002,7 @@ if ($role === 'student' || $role === 'guest') {
             </div>
             
             <?php if (isset($paymentWarn) && $paymentWarn): ?>
-                <div class="alert-box alert-error" style="margin-bottom: 24px; border: 1px solid rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.08); display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-radius: 16px; color: #fff;">
+                <div class="alert-box alert-error persistent" style="margin-bottom: 24px; border: 1px solid rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.08); display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-radius: 16px; color: #fff;">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" style="flex-shrink:0;">
                         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                         <line x1="12" y1="9" x2="12" y2="13"/>
@@ -2102,8 +2144,30 @@ if ($role === 'student' || $role === 'guest') {
                     });
                 }
                 foreach ($daysLanding as $d) if (!empty($routineSchedule[$d])) { $hasRoutineData = true; break; }
+
+                // Build time-slot list and grid lookup for the timetable widget
+                $rwTimeSlots = [];
+                foreach ($routineSchedule as $dayCls) {
+                    foreach ($dayCls as $cls) {
+                        if (!empty($cls['time']) && !in_array($cls['time'], $rwTimeSlots)) {
+                            $rwTimeSlots[] = $cls['time'];
+                        }
+                    }
+                }
+                usort($rwTimeSlots, function($a, $b) {
+                    return strtotime(explode(' - ', $a)[0]) - strtotime(explode(' - ', $b)[0]);
+                });
+                // day -> timeSlot -> [classes]
+                $rwGrid = [];
+                foreach ($daysLanding as $d) {
+                    $rwGrid[$d] = [];
+                    foreach ($routineSchedule[$d] as $cls) {
+                        $rwGrid[$d][$cls['time']][] = $cls;
+                    }
+                }
             } catch (Exception $ex) {
                 $routineSchedule = []; $hasRoutineData = false;
+                $rwTimeSlots = []; $rwGrid = [];
             }
         }
         ?>
@@ -2174,66 +2238,60 @@ if ($role === 'student' || $role === 'guest') {
                     No courses enrolled yet. Visit <a href="advising.php" style="color:var(--accent-primary); text-decoration:none;">Advising</a> to register for classes.
                 </div>
                 <?php else: ?>
-                <!-- Tablet / desktop: scrollable table -->
-                <div class="routine-desktop">
-                    <div class="routine-scroll-wrap scroll-x-touch">
-                        <table class="routine-table">
-                            <thead>
-                                <tr>
-                                    <th>Day</th>
-                                    <th>Time</th>
-                                    <th>Course</th>
-                                    <th>Sec</th>
-                                    <th>Room</th>
-                                    <th>Type</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            <?php
-                            foreach ($daysLanding as $rDay):
-                                if (empty($routineSchedule[$rDay])) continue;
-                                $rFirst = true;
-                                foreach ($routineSchedule[$rDay] as $rCls):
-                                    $rIsLab = ($rCls['type'] === 'Lab');
-                            ?>
-                                <tr>
-                                    <td style="font-weight:700; color:var(--accent-secondary);"><?= $rFirst ? htmlspecialchars($rDay) : '' ?></td>
-                                    <td style="color:var(--text-secondary); font-size:0.82rem; white-space:nowrap;"><?= htmlspecialchars($rCls['time']) ?></td>
-                                    <td style="font-weight:600;"><?= htmlspecialchars($rCls['code']) ?></td>
-                                    <td style="color:var(--text-secondary);"><?= htmlspecialchars($rCls['section_no']) ?></td>
-                                    <td style="color:var(--text-secondary);"><?= htmlspecialchars($rCls['room']) ?></td>
-                                    <td>
-                                        <span class="routine-type-pill <?= $rIsLab ? 'lab' : 'theory' ?>"><?= $rCls['type'] ?></span>
-                                    </td>
-                                </tr>
-                            <?php $rFirst = false; endforeach; endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    <p class="routine-scroll-hint">← Swipe left/right to see all columns →</p>
-                </div>
+                <!-- Timetable: time rows × day columns -->
+                <div class="routine-widget-scroll">
+                    <div class="rw-tt-grid">
 
-                <!-- Phone: stacked cards (no horizontal scroll needed) -->
-                <div class="routine-mobile-cards">
-                    <?php foreach ($daysLanding as $rDay):
-                        if (empty($routineSchedule[$rDay])) continue;
-                    ?>
-                        <div class="routine-day-label"><?= htmlspecialchars($rDay) ?></div>
-                        <?php foreach ($routineSchedule[$rDay] as $rCls):
-                            $rIsLab = ($rCls['type'] === 'Lab');
-                        ?>
-                        <div class="routine-card">
-                            <div class="routine-card-row"><span>Time</span><span><?= htmlspecialchars($rCls['time']) ?></span></div>
-                            <div class="routine-card-row"><span>Course</span><span><?= htmlspecialchars($rCls['code']) ?></span></div>
-                            <div class="routine-card-row"><span>Section</span><span><?= htmlspecialchars($rCls['section_no']) ?></span></div>
-                            <div class="routine-card-row"><span>Room</span><span><?= htmlspecialchars($rCls['room']) ?></span></div>
-                            <div class="routine-card-row"><span>Type</span>
-                                <span class="routine-type-pill <?= $rIsLab ? 'lab' : 'theory' ?>"><?= $rCls['type'] ?></span>
-                            </div>
-                        </div>
+                        <!-- Header row: corner + day names -->
+                        <div class="rw-corner"></div>
+                        <?php foreach ($daysLanding as $rDay): ?>
+                            <div class="rw-day-head"><?= mb_substr($rDay, 0, 3) ?></div>
                         <?php endforeach; ?>
-                    <?php endforeach; ?>
-                </div>
+
+                        <?php if (!empty($rwTimeSlots)): ?>
+                        <!-- One row per time slot -->
+                        <?php foreach ($rwTimeSlots as $rwSlot):
+                            // Short label: "8:00–9:20"
+                            $rwParts = explode(' - ', $rwSlot);
+                            $rwShort = '';
+                            foreach ($rwParts as $i => $p) {
+                                $d = date_create(trim($p));
+                                if ($d) {
+                                    $h = (int)date('g', $d->getTimestamp());
+                                    $m = date('i', $d->getTimestamp());
+                                    $rwShort .= ($i > 0 ? '–' : '') . ($m === '00' ? $h : "{$h}:{$m}");
+                                }
+                            }
+                        ?>
+                            <div class="rw-time-label">
+                                <span class="rw-time-short"><?= htmlspecialchars($rwShort ?: $rwSlot) ?></span>
+                                <span class="rw-time-long"><?= nl2br(htmlspecialchars(str_replace(' - ', "\n", $rwSlot))) ?></span>
+                            </div>
+                            <?php foreach ($daysLanding as $rDay): ?>
+                                <div class="rw-tt-cell">
+                                    <?php if (!empty($rwGrid[$rDay][$rwSlot])): ?>
+                                        <?php foreach ($rwGrid[$rDay][$rwSlot] as $rCls):
+                                            $rIsLab  = ($rCls['type'] === 'Lab');
+                                            $typeKey = $rIsLab ? 'lab' : 'theory';
+                                        ?>
+                                        <div class="rw-card <?= $typeKey ?>">
+                                            <div class="rw-card-code"><?= htmlspecialchars($rCls['code']) ?></div>
+                                            <div class="rw-card-meta">
+                                                <span>Sec <?= htmlspecialchars($rCls['section_no']) ?></span>
+                                                <span><?= htmlspecialchars($rCls['room']) ?></span>
+                                            </div>
+                                            <span class="rw-type-pill <?= $typeKey ?>"><?= $rCls['type'] ?></span>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endforeach; ?>
+                        <?php endif; ?>
+
+                    </div><!-- /rw-tt-grid -->
+                </div><!-- /routine-widget-scroll -->
+                <p class="routine-scroll-hint">← Swipe to see all days →</p>
                 <?php endif; ?>
             </div>
         </div>

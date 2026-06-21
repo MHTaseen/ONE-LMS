@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 session_start();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
     header('Location: landing.php'); exit();
@@ -137,7 +137,7 @@ $timeLimitSeconds = $quiz['time_limit'] * 60;
             table { min-width: 550px; font-size: 0.85rem; }
             th, td { padding: 8px 10px; }
         }</style>
-    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
 <div class="ambient-glow-1"></div>
@@ -252,6 +252,14 @@ $timeLimitSeconds = $quiz['time_limit'] * 60;
             
             <script>
             function submitFileQuiz() {
+                const fileInput = document.querySelector('input[name="solution_file"]');
+                if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                    alert('Please select a file to upload first.');
+                    return;
+                }
+                if (!confirm('Are you sure you want to submit this quiz?')) {
+                    return;
+                }
                 const fd = new FormData(document.getElementById('quizFileForm'));
                 fd.append('quiz_id', <?= $quiz_id ?>);
                 
@@ -343,8 +351,12 @@ function selectOpt(qid, letter, el) {
 // Submit
 function submitQuiz(auto = false) {
     if (submitted) return;
-    if (!auto && Object.keys(answers).length < <?= count($questions) ?>) {
-        if (!confirm('You have unanswered questions. Submit anyway?')) return;
+    if (!auto) {
+        if (Object.keys(answers).length < <?= count($questions) ?>) {
+            if (!confirm('You have unanswered questions. Submit anyway?')) return;
+        } else {
+            if (!confirm('Are you sure you want to submit this quiz?')) return;
+        }
     }
     submitted = true;
     clearInterval(timerInterval);

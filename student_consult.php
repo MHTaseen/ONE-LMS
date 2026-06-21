@@ -336,7 +336,7 @@ if ($active_section_id > 0) {
             table { min-width: 550px; font-size: 0.85rem; }
             th, td { padding: 8px 10px; }
         }</style>
-    <link rel="stylesheet" href="responsive.css?v=2">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
 

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // teacher_materials.php - Teacher UI for uploading and managing course materials
 session_start();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'teacher') {
@@ -263,7 +263,7 @@ function formatBytes($size, $precision = 2) {
             table { min-width: 550px; font-size: 0.85rem; }
             th, td { padding: 8px 10px; }
         }</style>
-    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
 

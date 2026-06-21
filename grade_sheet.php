@@ -187,7 +187,7 @@ try {
         @media (max-width: 768px) { .page-wrap { padding: 80px 14px 40px; } .score-grid { grid-template-columns: repeat(3,1fr); } }
         @media (max-width: 500px) { .score-grid { grid-template-columns: repeat(2,1fr); } .score-cell { border-bottom: 1px solid var(--border-color); } }
     </style>
-    <link rel="stylesheet" href="responsive.css?v=2">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
     <div class="ambient-glow-1"></div>

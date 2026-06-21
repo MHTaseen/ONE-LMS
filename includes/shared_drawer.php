@@ -313,7 +313,7 @@ if (isset($pdo) && $drawerRole === 'teacher') {
                     <line x1="12" y1="4" x2="12" y2="20"/>
                     <line x1="2" y1="10" x2="22" y2="10"/>
                 </svg>
-                Payment
+                My Payment
             </a>
             <?php endif; ?>
             <a href="routine.php" class="shared-drawer-item" role="menuitem">

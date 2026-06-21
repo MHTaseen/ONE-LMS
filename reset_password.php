@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Reset Password - BRACU Thesis Prototype</title>
     <link rel="stylesheet" href="style.css">
     <script src="theme.js"></script>
-    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
     <div class="ambient-glow-1"></div>

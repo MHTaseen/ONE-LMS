@@ -371,7 +371,7 @@ foreach ($studentRows as $stu) {
             .page-wrap { padding: 120px 12px 40px; }
         }
     </style>
-    <link rel="stylesheet" href="responsive.css?v=2">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
 

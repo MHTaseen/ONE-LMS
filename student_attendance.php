@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // student_attendance.php - Student UI for viewing attendance records
 session_start();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
@@ -154,7 +154,7 @@ if ($active_course) {
             table { min-width: 550px; font-size: 0.85rem; }
             th, td { padding: 8px 10px; }
         }</style>
-    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
 

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // app_support.php
 session_start();
 if (!isset($_SESSION['user_id'])) {
@@ -323,7 +323,7 @@ $initials = count($nameParts) > 1
         .btn-contact:hover { transform: translateY(-2px); box-shadow: 0 0 30px rgba(168, 85, 247, 0.6); }
         .empty-state { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary); text-align: center; padding: 20px; }
 
-        /* ── App Support Mobile Responsive ── */
+        /* -- App Support Mobile Responsive -- */
         @media (max-width: 900px) {
             .page-wrap { padding: 85px 18px 40px; }
             .video-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
@@ -355,7 +355,7 @@ $initials = count($nameParts) > 1
             .nav-avatar { width: 34px; height: 34px; font-size: 0.8rem; }
         }
     </style>
-    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
     <div class="ambient-glow-1"></div>
@@ -426,7 +426,7 @@ $initials = count($nameParts) > 1
 
     <!-- Video Player Modal Overlay -->
     <div class="video-player-modal" id="videoPlayerModal">
-        <button class="video-player-close" id="videoPlayerClose">✕</button>
+        <button class="video-player-close" id="videoPlayerClose">?</button>
         <div class="video-player-content">
             <iframe id="videoIframe" width="100%" height="100%" src="" title="Video Player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="display: block;"></iframe>
         </div>
@@ -435,7 +435,7 @@ $initials = count($nameParts) > 1
     <!-- Chat Modal Overlay -->
     <div class="chat-modal-overlay" id="chatModalOverlay">
         <div class="chat-modal">
-            <button class="chat-close-btn" id="closeChatBtn">✕</button>
+            <button class="chat-close-btn" id="closeChatBtn">?</button>
             
             <div class="chat-sidebar">
                 <div class="chat-sidebar-header">Developers</div>

@@ -201,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             table { min-width: 550px; font-size: 0.85rem; }
             th, td { padding: 8px 10px; }
         }</style>
-    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
 <div class="ambient-glow-1"></div>
@@ -221,7 +221,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <?php if (empty($teacherSections)): ?>
         <div class="alert-box" style="background:var(--bg-secondary); border-color:var(--border-color);">No sections found. <a href="teacher_courses.php" style="color:var(--accent-primary);">Create one first.</a></div>
     <?php else: ?>
-    <form method="POST" action="deploy_quiz.php" id="quizForm" enctype="multipart/form-data">
+    <form method="POST" action="deploy_quiz.php" id="quizForm" enctype="multipart/form-data" onsubmit="return confirm('Are you sure you want to deploy this quiz?');">
         <input type="hidden" name="action" value="deploy_quiz">
 
         <!-- Section 1: Quiz Info -->

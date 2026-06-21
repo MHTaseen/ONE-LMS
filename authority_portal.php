@@ -106,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Authority Portal - BRACU Hub</title>
     <link rel="stylesheet" href="style.css">
     <script src="theme.js"></script>
-    <link rel="stylesheet" href="responsive.css?v=2">
+    <link rel="stylesheet" href="responsive.css?v=3">
     <style>
         .portal-toggle {
             display: flex;

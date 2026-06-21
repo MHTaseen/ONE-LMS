@@ -300,7 +300,7 @@ $asgn_count_total = array_sum(array_map(fn($a) => count($a['assignments']), $ana
             .page-wrap { padding: 120px 14px 40px; }
         }
     </style>
-    <link rel="stylesheet" href="responsive.css?v=2">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
 

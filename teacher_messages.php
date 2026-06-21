@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // teacher_messages.php - Teacher UI for messaging students
 session_start();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'teacher') {
@@ -249,7 +249,7 @@ if ($active_section_id > 0 && $active_student_db_id > 0) {
             table { min-width: 550px; font-size: 0.85rem; }
             th, td { padding: 8px 10px; }
         }</style>
-    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
 
@@ -260,7 +260,7 @@ if ($active_section_id > 0 && $active_student_db_id > 0) {
 <div class="page-container">
     
     <?php if (!$active_chat): ?>
-    <!-- ── STUDENT LIST VIEW ── -->
+    <!-- -- STUDENT LIST VIEW -- -->
     <div class="header">
         <h1>Student Messages</h1>
         <p>Respond to consultation requests from your enrolled students.</p>
@@ -281,7 +281,7 @@ if ($active_section_id > 0 && $active_student_db_id > 0) {
                     <span class="s-badge">ID: <?= htmlspecialchars($s['student_id_str']) ?></span>
                     <h3><?= htmlspecialchars($s['student_name']) ?></h3>
                     <div class="s-course">
-                        <strong><?= htmlspecialchars($s['course_code']) ?></strong> — <?= htmlspecialchars($s['course_title']) ?><br>
+                        <strong><?= htmlspecialchars($s['course_code']) ?></strong> � <?= htmlspecialchars($s['course_title']) ?><br>
                         Section <?= $s['section_no'] ?>
                     </div>
                 </div>
@@ -295,7 +295,7 @@ if ($active_section_id > 0 && $active_student_db_id > 0) {
 
 
     <?php else: 
-        // ── CHAT UI VIEW ──
+        // -- CHAT UI VIEW --
         $initials = strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $active_chat['student_name']), 0, 2));
     ?>
     

@@ -500,5 +500,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Auto-dismiss alert boxes after 3 seconds
+    document.querySelectorAll('.alert-box.alert-success, .alert-box.alert-error').forEach(function(el) {
+        setTimeout(function() {
+            el.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out, max-height 0.5s ease-out, margin 0.5s ease-out, padding 0.5s ease-out';
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(-10px)';
+            
+            setTimeout(function() {
+                el.style.maxHeight = '0px';
+                el.style.padding = '0px';
+                el.style.margin = '0px';
+                el.style.border = 'none';
+                setTimeout(function() {
+                    el.remove();
+                }, 500);
+            }, 500);
+        }, 3000);
+    });
+
     initUniversalSearchNav();
 });

@@ -1,5 +1,6 @@
 /* responsive.css — Global responsive system for all devices
-   Load AFTER style.css and page-specific <style> blocks */
+   Load AFTER style.css and page-specific <style> blocks
+   Version: 3.0 — Full mobile overhaul */
 
 /* ── Foundation ── */
 html {
@@ -8,8 +9,12 @@ html {
     scroll-behavior: smooth;
 }
 
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
 body {
-    overflow-x: clip;
+    overflow-x: hidden;
     min-height: 100vh;
     min-height: 100dvh;
     width: 100%;
@@ -246,6 +251,33 @@ table {
     gap: 10px;
 }
 
+/* ── Course header / card header layouts ── */
+.course-card-header,
+.card-header-row,
+.header {
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+/* ── Advising routine grid: wrap in scroll container ── */
+.routine-grid {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ── Score grid ── */
+.score-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+/* ── Assignment status bar ── */
+.asgn-status-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
 /* ══════════════════════════════════════
    BREAKPOINTS
 ══════════════════════════════════════ */
@@ -300,6 +332,12 @@ table {
         grid-template-columns: 1fr !important;
     }
 
+    /* Also collapse deploy page specific grids */
+    .autofill-row,
+    .options-grid {
+        grid-template-columns: 1fr 1fr !important;
+    }
+
     .summary-strip {
         gap: 12px;
     }
@@ -344,6 +382,16 @@ table {
     .chat-container {
         height: calc(100dvh - 120px) !important;
         border-radius: 16px;
+    }
+
+    /* Routine grid on tablets */
+    .routine-grid {
+        min-width: 700px;
+    }
+
+    #liveRoutinePanel .rp-body {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 }
 
@@ -413,6 +461,20 @@ table {
         gap: 14px !important;
     }
 
+    /* Form grids collapse to 1 column */
+    .form-grid,
+    .grid-2col,
+    .autofill-row {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+
+    /* Options grid for quiz deploy: 2 columns still ok */
+    .options-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+    }
+
     .section-tabs,
     .tabs {
         gap: 8px;
@@ -455,10 +517,21 @@ table {
 
     .modal-content,
     .popup-card,
-    .profile-modal {
+    .profile-modal,
+    .modal-box {
         width: calc(100% - 20px) !important;
         margin: 10px !important;
         padding: 24px 18px !important;
+    }
+
+    /* Modal body on mobile */
+    .modal-body {
+        padding: 16px 18px !important;
+    }
+
+    /* Modal header on mobile */
+    .modal-header {
+        padding: 16px 18px !important;
     }
 
     .drawer-dropdown {
@@ -540,6 +613,142 @@ table {
     .post-error {
         padding-left: 16px !important;
         padding-right: 16px !important;
+    }
+
+    /* Deploy pages: card padding reduced */
+    .card {
+        padding: 20px 16px !important;
+    }
+
+    /* Deploy quiz: question cards */
+    .q-card {
+        padding: 16px !important;
+    }
+
+    /* Page header with semester selector */
+    .header[style*="justify-content:space-between"],
+    div[style*="justify-content:space-between"][style*="flex-wrap"] {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+    }
+
+    /* Assignment status bar */
+    .asgn-status-bar {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 8px !important;
+    }
+
+    /* Assignment action buttons */
+    .asgn-actions {
+        flex-wrap: wrap;
+        gap: 6px !important;
+    }
+
+    .btn-dl, .btn-sub {
+        flex: 1 1 auto;
+        justify-content: center;
+        min-width: 100px;
+    }
+
+    /* Routine grid: always scrollable */
+    #liveRoutinePanel .rp-body,
+    .rp-body {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 12px !important;
+    }
+
+    .routine-grid {
+        min-width: 600px;
+        gap: 4px;
+    }
+
+    /* Advising page: live routine panel header */
+    .rp-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px;
+        padding: 14px 16px !important;
+    }
+
+    /* Section cards in teacher pages */
+    .section-card {
+        padding: 16px 18px !important;
+    }
+
+    /* Total score action bar */
+    .total-actions-bar {
+        gap: 12px;
+    }
+
+    /* Quiz take page: submit bar */
+    .submit-bar {
+        padding: 12px 14px !important;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* Quiz header */
+    .quiz-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px !important;
+    }
+
+    /* Timer box: full width */
+    .timer-box {
+        width: 100%;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        padding: 10px 16px !important;
+    }
+
+    /* Grade summary strip in student scores */
+    .summary-strip {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap !important;
+        padding-bottom: 8px;
+    }
+
+    .sum-card {
+        flex-shrink: 0;
+        min-width: 110px;
+    }
+
+    /* Authority dashboard: stat cards */
+    .stats-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+    }
+
+    /* Teacher courses: action buttons */
+    .course-actions,
+    .section-actions {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    /* Deploy assignment/quiz: form sections */
+    .form-section-title {
+        font-size: 1rem !important;
+    }
+
+    /* Section heading in grading page */
+    .section-heading {
+        font-size: 1rem !important;
+        flex-wrap: wrap;
+    }
+
+    /* Grade input forms */
+    .grade-form {
+        flex-wrap: wrap;
+        gap: 6px !important;
+    }
+
+    .grade-input {
+        width: 60px !important;
     }
 }
 
@@ -627,7 +836,7 @@ table {
     }
 
     .stats-grid {
-        grid-template-columns: 1fr !important;
+        grid-template-columns: 1fr 1fr !important;
     }
 
     .stat-card .val,
@@ -669,8 +878,14 @@ table {
         margin: 20px 0 !important;
     }
 
-    .form-input {
+    .form-input,
+    .form-select,
+    .course-search-input {
         padding: 12px 14px !important;
+        font-size: 16px !important; /* prevents iOS zoom on focus */
+    }
+
+    select.form-input {
         font-size: 16px !important; /* prevents iOS zoom on focus */
     }
 
@@ -699,6 +914,224 @@ table {
         right: 8px !important;
         max-width: none !important;
     }
+
+    /* Options grid collapses to 1 column on very small screens */
+    .options-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Correct answer radio row wraps */
+    .correct-row {
+        flex-direction: column;
+        gap: 6px !important;
+    }
+
+    /* Deploy pages */
+    .card {
+        padding: 16px 12px !important;
+    }
+
+    .btn-deploy,
+    .btn-add-q {
+        padding: 12px 16px !important;
+        font-size: 0.9rem !important;
+    }
+
+    /* Quiz take page */
+    .quiz-header {
+        padding: 16px !important;
+    }
+
+    .q-card {
+        padding: 14px 12px !important;
+    }
+
+    .btn-submit {
+        padding: 10px 20px !important;
+        font-size: 0.9rem !important;
+    }
+
+    /* Timer full row on mobile */
+    .timer-box {
+        min-width: 0;
+        width: 100%;
+    }
+
+    /* Result card */
+    .result-card {
+        padding: 24px 16px !important;
+    }
+
+    /* Student scores page */
+    .score-grid {
+        grid-template-columns: 1fr 1fr !important;
+    }
+
+    /* Section tabs scrollable on small screens */
+    .section-tabs {
+        display: flex;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 6px !important;
+        padding-bottom: 6px;
+        scrollbar-width: none;
+    }
+
+    .section-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Teacher grading: section tabs wrap properly */
+    .tab-btn {
+        padding: 7px 12px !important;
+        font-size: 0.82rem !important;
+        white-space: nowrap;
+    }
+
+    /* Authority portal / dashboard */
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Routine grid on small phones */
+    .routine-grid {
+        min-width: 500px;
+        grid-template-columns: 100px repeat(6, 1fr) !important;
+        gap: 3px;
+    }
+
+    .rg-label {
+        padding: 6px 8px !important;
+        min-height: 40px !important;
+    }
+
+    .rg-day-head,
+    .rg-cell {
+        font-size: 0.65rem !important;
+        padding: 4px 2px !important;
+        min-height: 40px !important;
+    }
+
+    /* Dashboard grid on mobile */
+    .dashboard-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+
+    /* Dashboard header */
+    .dashboard-header {
+        flex-direction: column !important;
+        padding: 16px !important;
+        gap: 12px !important;
+        margin-bottom: 20px !important;
+    }
+
+    /* Teacher status page: student removal button */
+    .btn-danger.btn-sm {
+        font-size: 0.78rem !important;
+        padding: 6px 10px !important;
+    }
+
+    /* App support / communication media */
+    .tab-btn {
+        flex-shrink: 0;
+    }
+
+    /* Advising page accordion */
+    .course-header {
+        padding: 14px 16px !important;
+    }
+
+    .course-title-wrap {
+        flex-wrap: wrap;
+        gap: 8px !important;
+    }
+
+    .course-code-badge {
+        font-size: 0.78rem !important;
+        padding: 4px 10px !important;
+    }
+
+    .course-name {
+        font-size: 1rem !important;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+    }
+
+    /* Shared search wrap in advising */
+    .search-wrap {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+    }
+
+    .search-input-wrap {
+        max-width: none !important;
+    }
+
+    /* Modals: full width on small screens */
+    .modal-box,
+    .modal-content,
+    .popup-card,
+    .profile-modal,
+    .section-modal {
+        width: calc(100vw - 16px) !important;
+        margin: 8px !important;
+        max-height: calc(100dvh - 16px) !important;
+    }
+
+    /* Teacher messages: read-only notice */
+    .read-only-notice {
+        flex-direction: column;
+        gap: 8px !important;
+    }
+
+    /* Grade sheet: table */
+    .table-wrap table {
+        min-width: 360px;
+    }
+
+    /* Student study analysis charts */
+    canvas {
+        max-height: 280px;
+    }
+
+    /* Add course: marks group responsive */
+    .marks-group {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+
+    .marks-label {
+        grid-column: span 1 !important;
+    }
+
+    #marksError {
+        grid-column: span 1 !important;
+    }
+
+    /* Add course: form card */
+    .form-card {
+        padding: 20px 16px !important;
+    }
+
+    /* Landing page: dashboard grid */
+    .dashboard-grid {
+        gap: 16px !important;
+    }
+
+    /* Calendar wrapper */
+    .calendar-wrapper {
+        border-radius: 14px !important;
+    }
+
+    /* Grade sheet table */
+    .table-wrap table {
+        min-width: 380px;
+    }
 }
 
 /* Very small phones */
@@ -722,7 +1155,7 @@ table {
 
     .tab-btn {
         padding: 7px 10px !important;
-        font-size: 0.8rem !important;
+        font-size: 0.78rem !important;
     }
 
     table {
@@ -731,6 +1164,26 @@ table {
 
     .button-demo-list {
         grid-template-columns: 1fr !important;
+    }
+
+    /* Stats grid: 1 col on tiny screens */
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .score-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Info grid: 1 col */
+    .info-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Routine grid */
+    .routine-grid {
+        min-width: 460px;
+        grid-template-columns: 90px repeat(6, 1fr) !important;
     }
 }
 
@@ -752,6 +1205,12 @@ table {
     .profile-modal {
         max-height: calc(100dvh - 16px) !important;
     }
+
+    /* In landscape: page wrap needs less top padding */
+    .page-wrap,
+    .page-container {
+        padding-top: 64px !important;
+    }
 }
 
 /* Safe areas for notched devices */
@@ -769,6 +1228,10 @@ table {
 
     .chat-input,
     .chat-input-area {
+        padding-bottom: max(16px, env(safe-area-inset-bottom)) !important;
+    }
+
+    .submit-bar {
         padding-bottom: max(16px, env(safe-area-inset-bottom)) !important;
     }
 }

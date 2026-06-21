@@ -78,6 +78,31 @@ if ($activeSemester) {
     <script src="theme.js"></script>
     <style>
         body { justify-content: flex-start; align-items: stretch; padding-top: 0; }
+        
+        .top-navbar {
+            position: fixed; top: 0; left: 0; right: 0; height: auto; min-height: 64px;
+            z-index: 900; display: flex; align-items: center; padding: 10px 28px;
+            background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 2px 20px rgba(0,0,0,.25);
+        }
+        .navbar-left { display: flex; align-items: center; gap: 14px; }
+        .navbar-brand {
+            font-family: 'Space Grotesque', sans-serif; font-size: 1.15rem;
+            font-weight: 700; background: var(--gradient-accent);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            letter-spacing: -.5px; user-select: none;
+        }
+        .nav-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: var(--gradient-accent); display: flex;
+            justify-content: center; align-items: center; color: #fff;
+            font-weight: 700; font-size: .95rem; box-shadow: var(--glow-shadow);
+            cursor: default; font-family: 'Space Grotesque', sans-serif;
+        }
+        .navbar-right { display: flex; align-items: center; gap: 12px; }
+        .theme-switch-container { position: static; }
+
         .page-wrap { padding: 120px 28px 60px; max-width: 1000px; margin: 0 auto; width: 100%; }
 
         .page-heading {
@@ -211,7 +236,7 @@ if ($activeSemester) {
             }
         }
     </style>
-    <link rel="stylesheet" href="responsive.css?v=2">
+    <link rel="stylesheet" href="responsive.css?v=3">
 </head>
 <body>
     <div class="ambient-glow-1"></div>
@@ -384,5 +409,6 @@ if ($activeSemester) {
 
         <?php endif; ?>
     </div>
+<?php include 'includes/global_search_js.php'; ?>
 </body>
 </html>
